@@ -99,6 +99,7 @@ export function AuthForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="pl-10 h-12"
+              autoComplete="email"
               required
             />
           </div>
@@ -114,6 +115,7 @@ export function AuthForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="pr-10 h-12"
+              autoComplete={isLogin ? "current-password" : "new-password"}
               required
             />
             <Button

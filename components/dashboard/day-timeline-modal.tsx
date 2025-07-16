@@ -7,15 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, Calendar, CheckCircle, Circle, Play, Pause } from "lucide-react";
 
-interface Task {
-  id: string;
-  title: string;
-  duration: number;
-  priority: string;
-  status: string;
-  scheduled_at: string;
-  archetype: string;
-}
+import type { Database } from "@/lib/supabase";
+
+type Task = Database['public']['Tables']['tasks']['Row'];
 
 interface DayTimelineModalProps {
   isOpen: boolean;
@@ -27,84 +21,138 @@ interface DayTimelineModalProps {
 const mockDayTasks: Task[] = [
   {
     id: "1",
+    user_id: "mock-user",
     title: "Morning routine & coffee",
+    description: null,
     duration: 30,
     priority: "low",
     status: "completed",
     scheduled_at: "2024-01-15T08:00:00Z",
-    archetype: "personal"
+    archetype: "reactive",
+    completed_at: null,
+    skipped_count: 0,
+    created_at: "2024-01-15T07:50:00Z",
+    updated_at: "2024-01-15T08:00:00Z"
   },
   {
     id: "2",
+    user_id: "mock-user",
     title: "Review quarterly reports",
+    description: null,
     duration: 90,
     priority: "high",
     status: "completed",
     scheduled_at: "2024-01-15T09:00:00Z",
-    archetype: "analytical"
+    archetype: "analytical",
+    completed_at: null,
+    skipped_count: 0,
+    created_at: "2024-01-15T08:50:00Z",
+    updated_at: "2024-01-15T09:00:00Z"
   },
   {
     id: "3",
+    user_id: "mock-user",
     title: "Team standup meeting",
+    description: null,
     duration: 30,
     priority: "medium",
     status: "completed",
     scheduled_at: "2024-01-15T10:30:00Z",
-    archetype: "collaborative"
+    archetype: "collaborative",
+    completed_at: null,
+    skipped_count: 0,
+    created_at: "2024-01-15T10:00:00Z",
+    updated_at: "2024-01-15T10:30:00Z"
   },
   {
     id: "4",
+    user_id: "mock-user",
     title: "Focus break",
+    description: null,
     duration: 15,
     priority: "low",
     status: "completed",
     scheduled_at: "2024-01-15T11:00:00Z",
-    archetype: "personal"
+    archetype: "reactive",
+    completed_at: null,
+    skipped_count: 0,
+    created_at: "2024-01-15T10:50:00Z",
+    updated_at: "2024-01-15T11:00:00Z"
   },
   {
     id: "5",
+    user_id: "mock-user",
     title: "Client presentation prep",
+    description: null,
     duration: 120,
     priority: "high",
     status: "in_progress",
     scheduled_at: "2024-01-15T11:15:00Z",
-    archetype: "creative"
+    archetype: "creative",
+    completed_at: null,
+    skipped_count: 0,
+    created_at: "2024-01-15T11:00:00Z",
+    updated_at: "2024-01-15T11:15:00Z"
   },
   {
     id: "6",
+    user_id: "mock-user",
     title: "Lunch break",
+    description: null,
     duration: 60,
     priority: "low",
     status: "pending",
     scheduled_at: "2024-01-15T13:15:00Z",
-    archetype: "personal"
+    archetype: "reactive",
+    completed_at: null,
+    skipped_count: 0,
+    created_at: "2024-01-15T13:00:00Z",
+    updated_at: "2024-01-15T13:15:00Z"
   },
   {
     id: "7",
+    user_id: "mock-user",
     title: "Design system updates",
+    description: null,
     duration: 120,
     priority: "high",
     status: "pending",
     scheduled_at: "2024-01-15T14:15:00Z",
-    archetype: "creative"
+    archetype: "creative",
+    completed_at: null,
+    skipped_count: 0,
+    created_at: "2024-01-15T14:00:00Z",
+    updated_at: "2024-01-15T14:15:00Z"
   },
   {
     id: "8",
+    user_id: "mock-user",
     title: "Code review session",
+    description: null,
     duration: 45,
     priority: "medium",
     status: "pending",
     scheduled_at: "2024-01-15T16:15:00Z",
-    archetype: "analytical"
+    archetype: "analytical",
+    completed_at: null,
+    skipped_count: 0,
+    created_at: "2024-01-15T16:00:00Z",
+    updated_at: "2024-01-15T16:15:00Z"
   },
   {
     id: "9",
+    user_id: "mock-user",
     title: "Wrap up & planning",
+    description: null,
     duration: 30,
     priority: "low",
     status: "pending",
     scheduled_at: "2024-01-15T17:00:00Z",
-    archetype: "analytical"
+    archetype: "analytical",
+    completed_at: null,
+    skipped_count: 0,
+    created_at: "2024-01-15T16:50:00Z",
+    updated_at: "2024-01-15T17:00:00Z"
   }
 ];
 
@@ -131,7 +179,8 @@ export function DayTimelineModal({ isOpen, onClose, selectedTask }: DayTimelineM
   const currentHour = currentTime.getHours();
   const currentMinute = currentTime.getMinutes();
 
-  const getTimePosition = (scheduledAt: string) => {
+  const getTimePosition = (scheduledAt: string | null) => {
+    if (!scheduledAt) return 0;
     const taskTime = new Date(scheduledAt);
     const taskHour = taskTime.getHours();
     const taskMinute = taskTime.getMinutes();

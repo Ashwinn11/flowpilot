@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAuth } from "@/hooks/use-auth";
@@ -13,13 +13,19 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
 
+  // Memoize the auth state to prevent unnecessary re-renders
+  const authState = useMemo(() => ({
+    isAuthenticated: !!user,
+    isLoading: loading
+  }), [user, loading]);
+
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authState.isLoading && !authState.isAuthenticated) {
       router.push("/auth");
     }
-  }, [user, loading, router]);
+  }, [authState.isAuthenticated, authState.isLoading, router]);
 
-  if (loading) {
+  if (authState.isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner />
@@ -27,7 +33,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!user) {
+  if (!authState.isAuthenticated) {
     return null;
   }
 

@@ -10,20 +10,18 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Clock, MoreVertical, Edit3, Trash2, Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import { DayTimelineModal } from "./day-timeline-modal";
 
-interface Task {
-  id: string;
-  title: string;
-  duration: number;
-  priority: string;
-  status: string;
-  scheduled_at: string;
-  archetype: string;
-}
+import type { Database } from "@/lib/supabase";
+
+type Task = Database['public']['Tables']['tasks']['Row'];
 
 interface TaskCardProps {
   task: Task;
   isMinimal?: boolean;
   onClick?: () => void;
+  onComplete?: () => void;
+  onSkip?: () => void;
+  onUpdate?: (updates: any) => void;
+  onDelete?: () => void;
 }
 
 const priorityColors = {
@@ -38,19 +36,23 @@ const archetypeColors = {
   collaborative: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-300"
 };
 
-export function TaskCard({ task, isMinimal = false, onClick }: TaskCardProps) {
+export function TaskCard({ task, isMinimal = false, onClick, onComplete, onSkip, onUpdate, onDelete }: TaskCardProps) {
   const [isCompleted, setIsCompleted] = useState(task.status === "completed");
   const [showTimeline, setShowTimeline] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   
-  const scheduledTime = new Date(task.scheduled_at).toLocaleTimeString([], { 
+  const scheduledTime = task.scheduled_at ? new Date(task.scheduled_at).toLocaleTimeString([], { 
     hour: '2-digit', 
     minute: '2-digit' 
-  });
+  }) : 'Not scheduled';
 
   const handleToggleComplete = () => {
     setIsCompleted(!isCompleted);
-    // TODO: Update task status in database
+    if (onComplete && !isCompleted) {
+      onComplete();
+    } else if (onSkip && isCompleted) {
+      onSkip();
+    }
   };
 
   const handleCardClick = () => {
@@ -109,11 +111,18 @@ export function TaskCard({ task, isMinimal = false, onClick }: TaskCardProps) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onUpdate && onUpdate({ status: isCompleted ? 'pending' : 'completed' })}>
                           <Edit3 className="w-4 h-4 mr-2" />
-                          Edit
+                          {isCompleted ? 'Mark Incomplete' : 'Mark Complete'}
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600">
+                        <DropdownMenuItem onClick={() => onSkip && onSkip()}>
+                          <Clock className="w-4 h-4 mr-2" />
+                          Skip
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-red-600"
+                          onClick={() => onDelete && onDelete()}
+                        >
                           <Trash2 className="w-4 h-4 mr-2" />
                           Delete
                         </DropdownMenuItem>

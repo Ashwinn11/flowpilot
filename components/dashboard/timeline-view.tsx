@@ -5,24 +5,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TaskCard } from "./task-card";
 import { Calendar } from "lucide-react";
 
-interface Task {
-  id: string;
-  title: string;
-  duration: number;
-  priority: string;
-  status: string;
-  scheduled_at: string;
-  archetype: string;
-}
+import type { Database } from "@/lib/supabase";
+
+type Task = Database['public']['Tables']['tasks']['Row'];
 
 interface TimelineViewProps {
   tasks: Task[];
 }
 
 export function TimelineView({ tasks }: TimelineViewProps) {
-  const sortedTasks = [...tasks].sort((a, b) => 
-    new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
-  );
+  const sortedTasks = [...tasks].sort((a, b) => {
+    if (!a.scheduled_at && !b.scheduled_at) return 0;
+    if (!a.scheduled_at) return 1;
+    if (!b.scheduled_at) return -1;
+    return new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime();
+  });
 
   return (
     <motion.div

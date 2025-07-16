@@ -28,11 +28,10 @@ export function AddTaskModal({ isOpen, onClose, onAddTask }: AddTaskModalProps) 
     
     const newTask = {
       title,
+      description: voiceInput || null,
       duration: parseInt(duration),
       priority,
-      status: "pending",
-      scheduled_at: new Date(scheduledTime).toISOString(),
-      archetype: "analytical" // TODO: Determine from AI
+      archetype: "reactive" // TODO: Determine from AI
     };
 
     onAddTask(newTask);

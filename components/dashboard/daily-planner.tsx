@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { TaskService } from "@/lib/tasks";
 import { toast } from "sonner";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import type { Database } from "@/lib/supabase";
 
 type Task = Database['public']['Tables']['tasks']['Row'];
@@ -29,10 +30,13 @@ export function DailyPlanner() {
   const completedTasks = tasks.filter(task => task.status === "completed").length;
   const totalTasks = tasks.length;
 
-  // Load tasks for today
+  // Load tasks for today with optimistic loading
   useEffect(() => {
     if (user) {
+      // Start loading immediately, don't block UI
       loadTodayTasks();
+    } else {
+      setLoading(false); // Don't keep loading if no user
     }
   }, [user]);
 
@@ -55,7 +59,6 @@ export function DailyPlanner() {
     if (!user) return;
     
     try {
-      setLoading(true);
       const today = new Date().toISOString().split('T')[0];
       const todayTasks = await TaskService.getTasksForDate(user.id, today);
       setTasks(todayTasks);
@@ -172,30 +175,17 @@ export function DailyPlanner() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="flex items-center justify-between"
-      >
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-        >
+      <div className="flex items-center justify-between">
+        <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
             Good {getGreeting()}, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'there'}! 👋
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
             You have {totalTasks - completedTasks} tasks remaining today
           </p>
-        </motion.div>
+        </div>
         
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex items-center space-x-3"
+        <div className="flex items-center space-x-3">
         >
           <Button
             variant={viewMode === "cards" ? "default" : "outline"}
@@ -213,163 +203,182 @@ export function DailyPlanner() {
             <Clock className="w-4 h-4 mr-2" />
             Timeline
           </Button>
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <div>
             <Button onClick={() => setIsAddModalOpen(true)} className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white">
               <Plus className="w-4 h-4 mr-2" />
               Add Task
             </Button>
-          </motion.div>
-        </motion.div>
-      </motion.div>
+          </div>
+        </div>
+      </div>
 
-      {/* Progress Overview */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
-        className="grid grid-cols-1 md:grid-cols-3 gap-6"
-      >
-        {[
-          {
-            title: "Today's Progress",
-            value: `${completedTasks}/${totalTasks}`,
-            icon: CheckCircle,
-            color: "blue",
-            gradient: "from-blue-50 to-teal-50 dark:from-blue-900/20 dark:to-teal-900/20",
-            progress: (completedTasks / totalTasks) * 100
-          },
-          {
-            title: "Focus Time",
-            value: "4.5h",
-            icon: Clock,
-            color: "teal",
-            subtitle: "Deep work scheduled"
-          },
-          {
-            title: "Streak",
-            value: "12",
-            icon: Target,
-            color: "orange",
-            subtitle: "Productive days"
-          }
-        ].map((stat, index) => (
-          <motion.div
-            key={stat.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 + index * 0.1 }}
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          >
-            <Card className={`border-0 shadow-lg ${stat.gradient || ''} hover:shadow-xl transition-all duration-300`}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-slate-700 dark:text-slate-300">{stat.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <span className={`text-2xl font-bold text-${stat.color}-600`}>{stat.value}</span>
-                  <stat.icon className={`w-8 h-8 text-${stat.color}-600`} />
-                </div>
-                {stat.progress !== undefined && (
-                  <div className={`w-full bg-${stat.color}-200 rounded-full h-2 mt-3`}>
-                    <motion.div 
-                      className={`bg-gradient-to-r from-${stat.color}-600 to-teal-600 h-2 rounded-full`}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${stat.progress}%` }}
-                      transition={{ duration: 1, delay: 0.8 + index * 0.1 }}
-                    />
-                  </div>
-                )}
-                {stat.subtitle && (
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{stat.subtitle}</p>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </motion.div>
-
-      {/* Main Content */}
-      <AnimatePresence mode="wait">
-        {viewMode === "cards" ? (
-          <motion.div
-            key="cards"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-          >
-            {/* Top 3 Focus Tasks */}
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Target className="w-5 h-5 mr-2 text-blue-600" />
-                  Top 3 Focus Tasks
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {tasks.slice(0, 3).map((task, index) => (
-                    <motion.div
-                      key={task.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="flex items-center space-x-3"
-                    >
-                      <Badge variant="secondary" className="w-8 h-8 rounded-full flex items-center justify-center">
-                        {index + 1}
-                      </Badge>
-                      <div className="flex-1">
-                        <TaskCard task={task} />
+      {loading ? (
+        <DashboardSkeleton />
+      ) : (
+        <>
+          {/* Progress Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                title: "Today's Progress",
+                value: `${completedTasks}/${totalTasks}`,
+                icon: CheckCircle,
+                color: "blue",
+                gradient: "from-blue-50 to-teal-50 dark:from-blue-900/20 dark:to-teal-900/20",
+                progress: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0
+              },
+              {
+                title: "Focus Time",
+                value: `${Math.round(tasks.reduce((sum, task) => sum + task.duration, 0) / 60 * 10) / 10}h`,
+                icon: Clock,
+                color: "teal",
+                subtitle: "Deep work scheduled"
+              },
+              {
+                title: "Streak",
+                value: "12",
+                icon: Target,
+                color: "orange",
+                subtitle: "Productive days"
+              }
+            ].map((stat, index) => (
+              <div key={stat.title}>
+                <Card className={`border-0 shadow-lg ${stat.gradient || ''} hover:shadow-xl transition-all duration-300`}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-slate-700 dark:text-slate-300">{stat.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-2xl font-bold text-${stat.color}-600`}>{stat.value}</span>
+                      <stat.icon className={`w-8 h-8 text-${stat.color}-600`} />
+                    </div>
+                    {stat.progress !== undefined && (
+                      <div className={`w-full bg-${stat.color}-200 rounded-full h-2 mt-3`}>
+                        <div 
+                          className={`bg-gradient-to-r from-${stat.color}-600 to-teal-600 h-2 rounded-full transition-all duration-1000`}
+                          style={{ width: `${stat.progress}%` }}
+                        />
                       </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    )}
+                    {stat.subtitle && (
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{stat.subtitle}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
+          </div>
 
-            {/* All Tasks */}
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle>All Tasks</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {tasks.map((task, index) => (
-                    <motion.div
-                      key={task.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <TaskCard task={task} />
-                    </motion.div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="timeline"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <TimelineView tasks={tasks} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+          {/* Main Content */}
+          <AnimatePresence mode="wait">
+            {viewMode === "cards" ? (
+              <motion.div
+                key="cards"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-6"
+              >
+                {tasks.length === 0 ? (
+                  <Card className="border-0 shadow-lg">
+                    <CardContent className="py-12 text-center">
+                      <div className="text-slate-400 mb-4">
+                        <Target className="w-12 h-12 mx-auto" />
+                      </div>
+                      <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
+                        No tasks for today
+                      </h3>
+                      <p className="text-slate-600 dark:text-slate-400 mb-4">
+                        Add your first task to get started with your productive day!
+                      </p>
+                      <Button 
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Your First Task
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    {/* Top 3 Focus Tasks */}
+                    <Card className="border-0 shadow-lg">
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Target className="w-5 h-5 mr-2 text-blue-600" />
+                          Top 3 Focus Tasks
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {tasks.slice(0, 3).map((task, index) => (
+                            <motion.div
+                              key={task.id}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.1 }}
+                              className="flex items-center space-x-3"
+                            >
+                              <Badge variant="secondary" className="w-8 h-8 rounded-full flex items-center justify-center">
+                                {index + 1}
+                              </Badge>
+                              <div className="flex-1">
+                                <TaskCard 
+                                  task={task} 
+                                  onComplete={() => handleTaskComplete(task.id)}
+                                  onSkip={() => handleTaskSkip(task.id)}
+                                  onUpdate={(updates) => handleTaskUpdate(task.id, updates)}
+                                  onDelete={() => handleTaskDelete(task.id)}
+                                />
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
 
-      <AddTaskModal
-        isOpen={isAddModalOpen}
+                    {/* All Tasks */}
+                    <Card className="border-0 shadow-lg">
+                      <CardHeader>
+                        <CardTitle>All Tasks</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {tasks.map((task, index) => (
+                            <motion.div
+                              key={task.id}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                            >
+                              <TaskCard 
+                                task={task}
+                                onComplete={() => handleTaskComplete(task.id)}
+                                onSkip={() => handleTaskSkip(task.id)}
+                                onUpdate={(updates) => handleTaskUpdate(task.id, updates)}
+                                onDelete={() => handleTaskDelete(task.id)}
+                              />
+                            </motion.div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
+              </motion.div>
+            ) : (
+              <TimelineView tasks={tasks} />
+            )}
+          </AnimatePresence>
+        </>
+      )}
+
+      <AddTaskModal 
+        isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)}
-        onAddTask={(task) => {
-          setTasks([...tasks, { ...task, id: Date.now().toString() }]);
-          setIsAddModalOpen(false);
-        }}
+        onAddTask={handleAddTask}
       />
 
       <EndOfDayModal
@@ -379,4 +388,11 @@ export function DailyPlanner() {
       />
     </div>
   );
+}
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'morning';
+  if (hour < 17) return 'afternoon';
+  return 'evening';
 }

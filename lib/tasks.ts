@@ -5,7 +5,22 @@ type Task = Database['public']['Tables']['tasks']['Row'];
 type TaskInsert = Database['public']['Tables']['tasks']['Insert'];
 type TaskUpdate = Database['public']['Tables']['tasks']['Update'];
 
+// Simple in-memory cache for tasks
+const taskCache = new Map<string, { data: Task[], timestamp: number }>();
+const CACHE_DURATION = 30 * 1000; // 30 seconds
+
 export class TaskService {
+  // Clear cache for a specific user and date
+  static clearCache(userId: string, date?: string) {
+    if (date) {
+      taskCache.delete(`${userId}-${date}`);
+    } else {
+      // Clear all cache entries for this user
+      const keysToDelete = Array.from(taskCache.keys()).filter(key => key.startsWith(`${userId}-`));
+      keysToDelete.forEach(key => taskCache.delete(key));
+    }
+  }
+
   // Get all tasks for a user
   static async getTasks(userId: string): Promise<Task[]> {
     const { data, error } = await supabase
@@ -20,6 +35,14 @@ export class TaskService {
 
   // Get tasks for a specific date
   static async getTasksForDate(userId: string, date: string): Promise<Task[]> {
+    const cacheKey = `${userId}-${date}`;
+    const cached = taskCache.get(cacheKey);
+    
+    // Return cached data if it's still fresh
+    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+      return cached.data;
+    }
+    
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     
@@ -35,7 +58,16 @@ export class TaskService {
       .order('scheduled_at', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    
+    const tasks = data || [];
+    
+    // Cache the result
+    taskCache.set(cacheKey, {
+      data: tasks,
+      timestamp: Date.now()
+    });
+    
+    return tasks;
   }
 
   // Create a new task
@@ -47,6 +79,9 @@ export class TaskService {
       .single();
 
     if (error) throw error;
+
+    // Clear cache for this user
+    this.clearCache(task.user_id);
 
     // Log the task creation
     await this.logTaskAction(data.id, task.user_id, 'created');
@@ -248,7 +283,7 @@ export class TaskService {
         if (!t.scheduled_at) return false;
         const taskStart = new Date(t.scheduled_at);
         const taskEnd = new Date(taskStart.getTime() + (t.duration * 60 * 1000));
-        const proposedEnd = new Date(proposedTime.getTime() + (task.duration * 60 * 1000));
+        const proposedEnd = new Date(proposedTime.getTime() + ((task.duration || 60) * 60 * 1000));
         
         return (proposedTime < taskEnd && proposedEnd > taskStart);
       });
@@ -265,4 +300,16 @@ export class TaskService {
       scheduled_at: scheduledTime.toISOString()
     });
   }
-} 
+
+  // Preload tasks for better UX - call this early in the auth flow
+  static async preloadTodayTasks(userId: string): Promise<void> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      // This will cache the result for later use
+      await this.getTasksForDate(userId, today);
+    } catch (error) {
+      // Silent fail for preloading
+      console.warn('Failed to preload tasks:', error);
+    }
+  }
+}

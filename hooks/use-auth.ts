@@ -3,33 +3,50 @@
 import { useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { TaskService } from '@/lib/tasks';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+    
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
+      
       setUser(session?.user ?? null);
-      if (session?.user) {
-        createUserProfile(session.user);
-      }
       setLoading(false);
+      
+      // Create user profile in background, don't block UI
+      if (session?.user) {
+        createUserProfile(session.user).catch(console.error);
+        // Preload today's tasks for faster dashboard loading
+        TaskService.preloadTodayTasks(session.user.id).catch(console.error);
+      }
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!isMounted) return;
+        
         setUser(session?.user ?? null);
-        if (event === 'SIGNED_IN' && session?.user) {
-          await createUserProfile(session.user);
-        }
         setLoading(false);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          // Don't await these - let them happen in background
+          createUserProfile(session.user).catch(console.error);
+          TaskService.preloadTodayTasks(session.user.id).catch(console.error);
+        }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const createUserProfile = async (user: User) => {
