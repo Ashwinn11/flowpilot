@@ -1,0 +1,105 @@
+description: >
+  FlowPilot is an AI-powered productivity planner designed to intelligently schedule and reprioritize tasks based on the user's real behavior, calendar availability, and work archetypes. It integrates Google and Microsoft calendars, uses OpenAI to parse and prioritize tasks, tracks productive hours, and helps users stay focused with micro-nudges and intent-based planning. The goal is to build a clean, low-friction PWA with optional voice input and daily assistance via a context-aware AI assistant.
+
+globs:
+  - "app/**/*.{ts,tsx}"
+  - "components/**/*.{ts,tsx}"
+  - "lib/**/*.{ts,tsx}"
+  - "hooks/**/*.{ts,tsx}"
+  - "db/schema.sql"
+  - ".env*"
+  - "public/**/*"
+
+alwaysApply: false
+
+rules:
+  - globs:
+      - "lib/openai.ts"
+    description: >
+      All GPT usage must go through this module. Use function calling for task parsing.
+      Add dev-only mock mode via `USE_OPENAI_MOCK=true`.
+      Use GPT-4o only when structure detection is critical. GPT-3.5 for everything else (assistant, nudges).
+      Log cost for each API call during development.
+
+  - globs:
+      - "lib/calendar.ts"
+    description: >
+      Calendar integration logic lives here. Use Google Calendar API and Microsoft Graph.
+      Read events (readonly scopes), detect free time blocks locally.
+      Optional write access for adding tasks to calendar only if user enables.
+
+  - globs:
+      - "app/planner/**/*"
+    description: >
+      Core planner page. Renders daily view with both external calendar events and FlowPilot tasks.
+      Highlights archetypes and shows free time gaps.
+      Support drag & drop and manual completion toggle.
+
+  - globs:
+      - "lib/scheduler.ts"
+    description: >
+      Logic for task scheduling and rescheduling based on priority, archetype, and available time.
+      Automatically rebalances skipped tasks using retry loop engine.
+      If user skips same task 3×, prompt a user confirmation before retrying.
+
+  - globs:
+      - "lib/assistant.ts"
+    description: >
+      Context-aware GPT assistant.
+      Takes calendar events, task list, productivity logs, and answers user queries like:
+      - "What should I do now?"
+      - "What deep work is pending?"
+      - "How productive was I yesterday?"
+      Use GPT-3.5 with fine prompt memory control.
+
+  - globs:
+      - "lib/analytics.ts"
+    description: >
+      Tracks productivity by timestamping `completed_at` for each task.
+      Detects productivity hours by archetype.
+      Shows heatmap, archetype pie chart, and "One Big Thing" completion metrics.
+
+  - globs:
+      - "components/nudges/**/*"
+    description: >
+      Surface behavioral nudges based on user history. 
+      Examples:
+        - “You tend to complete deep work around 11AM. Should I move this?”
+        - “Skipped 3 deep tasks this week — want to shorten them?”
+        - “Your week was 80% ‘Deliver’ tasks. Consider adding time to ‘Grow’ or ‘Learn’.”
+      GPT is optional — use logic+copy first, fallback to GPT summarizer.
+
+  - globs:
+      - "components/ui/**/*"
+    description: >
+      Minimal, clean components. Base typography and spacing like Airbnb or YC.
+      Use shadcn/ui for layout primitives.
+      Prefer whitespace, icons, and subtle states — no dark UI noise.
+
+  - globs:
+      - "db/schema.sql"
+    description: >
+      Tables:
+        - `users`: preferences, timezone, trial, productivity mode
+        - `tasks`: title, priority, archetype, scheduled_at, completed_at, skipped_count
+        - `user_calendar_events`: provider, event_id, title, start, end
+        - `task_logs`: action, timestamp
+        - `nudges`: type, message, resolved
+      Support RLS. Don't expose user data across sessions.
+
+  - globs:
+      - "hooks/**/*"
+    description: >
+      Use hooks for business logic separation:
+        - `useTasks`, `useCalendar`, `useScheduler`, `useAssistant`, `useTrial`
+      Avoid GPT logic in hooks — it stays in lib.
+
+  - globs:
+      - ".env*"
+    description: >
+      Env vars for:
+        - `OPENAI_API_KEY`, `USE_OPENAI_MOCK`
+        - `GOOGLE_CLIENT_ID`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`
+        - `STRIPE_SECRET_KEY`, `TRIAL_DURATION_DAYS`
+      Never commit private keys. Mock where needed for dev.
+
