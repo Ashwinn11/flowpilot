@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 export function AuthForm() {
-  const { user, signInWithGoogle, signInWithMicrosoft } = useAuth();
+  const { user, signInWithGoogle, signInWithMicrosoft, signUpWithEmail, signInWithEmail } = useAuth();
   const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -31,11 +31,20 @@ export function AuthForm() {
     e.preventDefault();
     setLoading(true);
     
-    // TODO: Implement email/password authentication
-    setTimeout(() => {
+    try {
+      if (isLogin) {
+        await signInWithEmail(email, password);
+        toast.success('Successfully signed in!');
+      } else {
+        await signUpWithEmail(email, password);
+        toast.success('Account created! Please check your email to verify your account.');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Authentication failed');
+      console.error('Auth error:', error);
+    } finally {
       setLoading(false);
-      router.push("/dashboard");
-    }, 1000);
+    }
   };
 
   const handleOAuthLogin = async (provider: 'google' | 'microsoft') => {

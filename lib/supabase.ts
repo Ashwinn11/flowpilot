@@ -3,7 +3,24 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Create Supabase client with optimized configuration for browser
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'flowpilot-web'
+    }
+  }
+})
 
 export type Database = {
   public: {
@@ -14,7 +31,11 @@ export type Database = {
           email: string
           name: string | null
           timezone: string
-          work_hours: any
+          work_hours: {
+            start: string
+            end: string
+            days: number[]
+          }
           trial_started_at: string | null
           is_pro_user: boolean
           stripe_customer_id: string | null
@@ -26,7 +47,11 @@ export type Database = {
           email: string
           name?: string | null
           timezone?: string
-          work_hours?: any
+          work_hours?: {
+            start: string
+            end: string
+            days: number[]
+          }
           trial_started_at?: string | null
           is_pro_user?: boolean
           stripe_customer_id?: string | null
@@ -38,7 +63,11 @@ export type Database = {
           email?: string
           name?: string | null
           timezone?: string
-          work_hours?: any
+          work_hours?: {
+            start: string
+            end: string
+            days: number[]
+          }
           trial_started_at?: string | null
           is_pro_user?: boolean
           stripe_customer_id?: string | null

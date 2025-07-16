@@ -59,13 +59,32 @@ export function useAuth() {
         .single();
 
       if (!existingProfile) {
+        // Detect user's timezone
+        let userTimezone = 'UTC';
+        try {
+          userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        } catch (error) {
+          console.warn('Could not detect timezone, using UTC:', error);
+        }
+
+        // Get user name - handle both OAuth and email/password users
+        let userName = null;
+        if (user.user_metadata?.full_name || user.user_metadata?.name) {
+          // OAuth user
+          userName = user.user_metadata?.full_name || user.user_metadata?.name;
+        } else if (user.email) {
+          // Email/password user - use email prefix as name
+          userName = user.email.split('@')[0];
+        }
+
         // Create new user profile
         const { error } = await supabase
           .from('user_profiles')
           .insert({
             id: user.id,
             email: user.email!,
-            name: user.user_metadata?.full_name || user.user_metadata?.name,
+            name: userName,
+            timezone: userTimezone,
             trial_started_at: new Date().toISOString(),
             is_pro_user: false
           });
@@ -99,6 +118,25 @@ export function useAuth() {
     if (error) throw error;
   };
 
+  const signUpWithEmail = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`
+      }
+    });
+    if (error) throw error;
+  };
+
+  const signInWithEmail = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    if (error) throw error;
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -109,6 +147,8 @@ export function useAuth() {
     loading,
     signInWithGoogle,
     signInWithMicrosoft,
+    signUpWithEmail,
+    signInWithEmail,
     signOut
   };
 }
