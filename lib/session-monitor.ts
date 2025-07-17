@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { AuthAPI } from './auth-api';
 import { toast } from 'sonner';
 
 interface SessionHealth {
@@ -130,29 +131,55 @@ class SessionMonitorService {
   }
 
   /**
-   * Manually refresh the session
+   * Manually refresh the session using enhanced API
    */
   async refreshSession(): Promise<boolean> {
     try {
-      const { data, error } = await supabase.auth.refreshSession();
+      // Use the new API endpoint for enhanced refresh functionality
+      const result = await AuthAPI.refreshSession();
       
-      if (error) {
-        console.error('[SessionMonitor] Failed to refresh session:', error);
-        toast.error('Your session could not be refreshed. Please sign in again.');
+      if (!result) {
+        console.error('[SessionMonitor] Failed to refresh session: No response');
         return false;
       }
 
-      if (data.session) {
+      if (!result.success) {
+        console.error('[SessionMonitor] Failed to refresh session:', result.error);
+        if (result.requiresLogin) {
+          // Session is completely invalid, user needs to login again
+          return false;
+        }
+        return false;
+      }
+
+      if (result.refreshed) {
         console.log('[SessionMonitor] Session refreshed successfully');
         this.sessionWarningShown = false; // Reset warning flag
         return true;
+      } else {
+        // Session is still valid, no refresh was needed
+        console.log('[SessionMonitor] Session is still valid, no refresh needed');
+        return true;
       }
-
-      return false;
     } catch (error) {
       console.error('[SessionMonitor] Error refreshing session:', error);
-      toast.error('Your session could not be refreshed. Please sign in again.');
-      return false;
+      // Fallback to Supabase direct refresh
+      try {
+        const { data, error: supabaseError } = await supabase.auth.refreshSession();
+        
+        if (supabaseError || !data.session) {
+          toast.error('Your session could not be refreshed. Please sign in again.');
+          return false;
+        }
+
+        console.log('[SessionMonitor] Fallback refresh successful');
+        this.sessionWarningShown = false;
+        return true;
+      } catch (fallbackError) {
+        console.error('[SessionMonitor] Fallback refresh failed:', fallbackError);
+        toast.error('Your session could not be refreshed. Please sign in again.');
+        return false;
+      }
     }
   }
 
