@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { TaskService } from '@/lib/tasks';
+import { sessionMonitor } from '@/lib/session-monitor';
 
 interface AuthContextType {
   user: User | null;
@@ -106,6 +107,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         createUserProfile(session.user).catch(console.error);
         // Preload today's tasks for faster dashboard loading
         TaskService.preloadTodayTasks(session.user.id).catch(console.error);
+        
+        // Start session monitoring for authenticated users
+        sessionMonitor.startMonitoring();
+        
+        // Set up cross-tab session sync (only in browser)
+        if (typeof window !== 'undefined') {
+          sessionMonitor.setupCrossTabSync();
+        }
       }
     });
 
@@ -121,6 +130,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Don't await these - let them happen in background
           createUserProfile(session.user).catch(console.error);
           TaskService.preloadTodayTasks(session.user.id).catch(console.error);
+          
+          // Start session monitoring
+          sessionMonitor.startMonitoring();
+          
+          // Set up cross-tab session sync
+          if (typeof window !== 'undefined') {
+            sessionMonitor.setupCrossTabSync();
+          }
+        } else if (event === 'SIGNED_OUT') {
+          // Stop session monitoring when user signs out
+          sessionMonitor.stopMonitoring();
         }
       }
     );
@@ -128,6 +148,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       isMounted = false;
       subscription.unsubscribe();
+      // Clean up session monitoring
+      sessionMonitor.stopMonitoring();
     };
   }, [createUserProfile]);
 

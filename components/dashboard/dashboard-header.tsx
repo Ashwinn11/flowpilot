@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Zap, Settings, BarChart3, LogOut, Crown, Calendar } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SessionStatus } from "@/components/auth/session-status";
 import { useAuth } from "@/contexts/auth-context";
 import { useProfile } from "@/hooks/use-profile";
 import { useRouter } from "next/navigation";
@@ -64,6 +65,8 @@ export function DashboardHeader({ profile, trialDaysLeft, oauthInfo }) {
                 </Button>
               </Link>
             )}
+            
+            <SessionStatus />
             
             <ThemeToggle />
             
