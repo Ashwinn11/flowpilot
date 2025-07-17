@@ -13,11 +13,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 
-export function DashboardHeader() {
+export function DashboardHeader({ profile, trialDaysLeft, oauthInfo }) {
   const { user, signOut } = useAuth();
-  const { profile, trialDaysLeft, getOAuthInfo } = useProfile();
   const router = useRouter();
-  const oauthInfo = getOAuthInfo();
 
   const getUserDisplayName = () => {
     return profile?.name || oauthInfo?.name || user?.email?.split('@')[0] || 'User';
@@ -74,8 +72,8 @@ export function DashboardHeader() {
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
                     <AvatarImage 
-                      src={getAvatarUrl()} 
-                      alt={getUserDisplayName()} 
+                      src={profile?.avatar_url}
+                      alt={profile?.name || user?.email?.split('@')[0] || 'User avatar'}
                     />
                     <AvatarFallback>
                       {getAvatarFallback()}
@@ -118,9 +116,9 @@ export function DashboardHeader() {
                     try {
                       await signOut();
                       router.push('/');
-                      toast.success('Successfully signed out');
+                      toast.success('You’ve been signed out. See you next time!');
                     } catch (error) {
-                      toast.error('Failed to sign out');
+                      toast.error('We couldn’t sign you out. Please try again.');
                       console.error('Sign out error:', error);
                     }
                   }}

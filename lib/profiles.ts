@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { Database } from './supabase';
+import { toast } from 'sonner';
 
 export type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
 export type UserProfileUpdate = Database['public']['Tables']['user_profiles']['Update'];
@@ -9,9 +10,14 @@ export class ProfileService {
    * Get the current user's profile
    */
   static async getCurrentUserProfile(): Promise<UserProfile | null> {
+    console.log('[DEBUG] getCurrentUserProfile called', new Date().toISOString());
+    console.trace('[DEBUG] getCurrentUserProfile stack trace');
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      if (!user || !user.id) {
+        console.warn('[Profile Fetch] [UserID: none] No user or user.id found, skipping profile fetch.');
+        return null;
+      }
 
       const { data, error } = await supabase
         .from('user_profiles')
@@ -20,13 +26,13 @@ export class ProfileService {
         .single();
 
       if (error) {
-        console.error('Error fetching user profile:', error);
+        console.error(`[Profile Fetch] [UserID: ${user.id}] Error:`, error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Error in getCurrentUserProfile:', error);
+      console.error(`[Profile Fetch] [UserID: unknown] Error:`, error);
       return null;
     }
   }
@@ -37,7 +43,10 @@ export class ProfileService {
   static async updateProfile(updates: UserProfileUpdate): Promise<UserProfile | null> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      if (!user || !user.id) {
+        console.warn('[Profile Update] [UserID: none] No user or user.id found, skipping profile update.');
+        return null;
+      }
 
       const { data, error } = await supabase
         .from('user_profiles')
@@ -47,13 +56,13 @@ export class ProfileService {
         .single();
 
       if (error) {
-        console.error('Error updating user profile:', error);
+        console.error(`[Profile Update] [UserID: ${user.id}] Error:`, error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Error in updateProfile:', error);
+      console.error(`[Profile Update] [UserID: unknown] Error:`, error);
       return null;
     }
   }
@@ -116,28 +125,102 @@ export class ProfileService {
     }
   }
 
+  // Track polling intervals per user to prevent duplicates
+  private static pollingMap: Map<string, { interval: NodeJS.Timeout, stop: () => void }> = new Map();
+
   /**
    * Fallback polling mechanism when real-time fails
    */
   private static setupPollingFallback(userId: string, callback: (profile: UserProfile) => void) {
+    // If a poller already exists for this user, do not start another
+    if (this.pollingMap.has(userId)) {
+      console.log(`[Polling Fallback] Poller already running for user ${userId}`);
+      return {
+        unsubscribe: this.pollingMap.get(userId)!.stop
+      };
+    }
+
     let lastProfile: UserProfile | null = null;
-    
-    const pollInterval = setInterval(async () => {
+    let consecutiveErrors = 0;
+    const maxErrors = 5;
+    let isPolling = false;
+    let retryToastId: string | number | undefined = undefined;
+
+    const poll = async () => {
       try {
         const profile = await this.getCurrentUserProfile();
         if (profile && JSON.stringify(profile) !== JSON.stringify(lastProfile)) {
           lastProfile = profile;
           callback(profile);
         }
+        consecutiveErrors = 0; // Reset on success
       } catch (error) {
-        console.error('Polling fallback error:', error);
+        consecutiveErrors++;
+        console.error(`[Polling Fallback] [UserID: ${userId}] Error:`, error);
+        if (consecutiveErrors >= maxErrors) {
+          stopPolling();
+          console.warn(`[Polling Fallback] [UserID: ${userId}] Stopped after too many errors.`);
+          toast.error(
+            'We lost connection to your profile updates. Try refreshing the page, and if this keeps happening, please contact support@flowpilot.com.',
+            { duration: 10000 }
+          );
+        }
       }
-    }, 5000); // Poll every 5 seconds
+    };
+
+    const startPolling = () => {
+      if (isPolling) return;
+      isPolling = true;
+      toast.warning('We’re having trouble staying in sync. Profile updates might be a little slower right now.');
+      console.log(`[Polling Fallback] Starting poller for user ${userId}`);
+      const interval = setInterval(poll, 300000); // 5 minutes
+      // Save stop function in map
+      this.pollingMap.set(userId, {
+        interval,
+        stop: stopPolling
+      });
+    };
+
+    const stopPolling = () => {
+      if (!isPolling) return;
+      isPolling = false;
+      const poller = this.pollingMap.get(userId);
+      if (poller) {
+        clearInterval(poller.interval);
+        this.pollingMap.delete(userId);
+        console.log(`[Polling Fallback] Stopped poller for user ${userId}`);
+      }
+    };
+
+    // Retry handler for the toast button
+    const retryPollingFallback = () => {
+      if (!isPolling) {
+        consecutiveErrors = 0;
+        startPolling();
+        if (retryToastId) toast.dismiss(retryToastId);
+      }
+    };
+
+    // Handle tab visibility
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Start polling initially if tab is visible
+    if (!document.hidden) {
+      startPolling();
+    }
 
     // Return a mock subscription object for compatibility
     return {
       unsubscribe: () => {
-        clearInterval(pollInterval);
+        stopPolling();
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
       }
     };
   }

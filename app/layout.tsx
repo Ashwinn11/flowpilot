@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: 'FlowPilot - AI-Powered Productivity Planner',
   description: 'Master your day with intelligent task planning and AI assistance',
   manifest: '/manifest.json',
+};
+
+export const viewport = {
   themeColor: '#0ea5e9',
 };
 

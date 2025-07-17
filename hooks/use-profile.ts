@@ -6,11 +6,13 @@ import { ProfileService, UserProfile } from '@/lib/profiles';
 import { toast } from 'sonner';
 
 export function useProfile() {
+  console.log('[DEBUG] useProfile hook run', new Date().toISOString());
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [trialDaysLeft, setTrialDaysLeft] = useState(0);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   // Load initial profile data
   useEffect(() => {
@@ -42,18 +44,30 @@ export function useProfile() {
   }, [user?.id]);
 
   const loadProfile = async () => {
-    if (!user) return;
+    console.log('[DEBUG] loadProfile called', new Date().toISOString());
+    if (!user) {
+      console.warn('loadProfile: No user found, skipping profile fetch.');
+      return;
+    }
 
     try {
       setLoading(true);
+      setProfileError(null);
+      console.log('loadProfile: Fetching profile for user:', user.id, user.email);
       const userProfile = await ProfileService.getCurrentUserProfile();
       setProfile(userProfile);
+      setProfileError(null);
     } catch (error) {
       console.error('Error loading profile:', error);
-      toast.error('Failed to load profile');
+      toast.error('We couldn’t load your profile. Please check your internet connection and try again.');
+      setProfileError('Failed to load profile.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const retryProfileFetch = () => {
+    loadProfile();
   };
 
   const loadTrialDays = async () => {
@@ -76,7 +90,7 @@ export function useProfile() {
       
       if (updatedProfile) {
         setProfile(updatedProfile);
-        toast.success('Profile updated successfully');
+        toast.success('Your profile has been updated!');
         return updatedProfile;
       } else {
         toast.error('Failed to update profile');
@@ -84,7 +98,8 @@ export function useProfile() {
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      toast.error('We couldn’t update your profile. Please try again in a moment.');
+      // Optionally, you could add retry logic for updates as well
       return null;
     } finally {
       setSaving(false);
@@ -109,6 +124,8 @@ export function useProfile() {
     trialDaysLeft,
     updateProfile,
     getOAuthInfo,
-    refreshProfile: loadProfile
+    refreshProfile: loadProfile,
+    retryProfileFetch,
+    profileError,
   };
 } 

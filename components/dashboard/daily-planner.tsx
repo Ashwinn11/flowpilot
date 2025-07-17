@@ -64,7 +64,7 @@ export function DailyPlanner() {
       setTasks(todayTasks);
     } catch (error) {
       console.error('Error loading tasks:', error);
-      toast.error('Failed to load tasks');
+      toast.error('We couldn’t load your tasks. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -90,10 +90,10 @@ export function DailyPlanner() {
           notes: feedback.notes
         });
       
-      toast.success('Daily feedback saved!');
+      toast.success('Thanks for your feedback! We’ve saved it.');
     } catch (error) {
       console.error('Error saving feedback:', error);
-      toast.error('Failed to save feedback');
+      toast.error('Sorry, we couldn’t save your feedback. Please try again.');
     }
   };
 
@@ -111,10 +111,10 @@ export function DailyPlanner() {
       
       setTasks(prev => [...prev, newTask]);
       setIsAddModalOpen(false);
-      toast.success('Task added successfully!');
+      toast.success('Your new task has been added!');
     } catch (error) {
       console.error('Error adding task:', error);
-      toast.error('Failed to add task');
+      toast.error('We couldn’t add your task. Please try again.');
     }
   };
 
@@ -124,10 +124,10 @@ export function DailyPlanner() {
       setTasks(prev => prev.map(task => 
         task.id === taskId ? updatedTask : task
       ));
-      toast.success('Task updated successfully!');
+      toast.success('Task updated!');
     } catch (error) {
       console.error('Error updating task:', error);
-      toast.error('Failed to update task');
+      toast.error('We couldn’t update your task. Please try again.');
     }
   };
 
@@ -139,10 +139,10 @@ export function DailyPlanner() {
       setTasks(prev => prev.map(task => 
         task.id === taskId ? updatedTask : task
       ));
-      toast.success('Task completed!');
+      toast.success('Great job! Task marked as complete.');
     } catch (error) {
       console.error('Error completing task:', error);
-      toast.error('Failed to complete task');
+      toast.error('We couldn’t mark your task as complete. Please try again.');
     }
   };
 
@@ -154,10 +154,10 @@ export function DailyPlanner() {
       setTasks(prev => prev.map(task => 
         task.id === taskId ? updatedTask : task
       ));
-      toast.success('Task skipped');
+      toast.success('Task skipped.');
     } catch (error) {
       console.error('Error skipping task:', error);
-      toast.error('Failed to skip task');
+      toast.error('We couldn’t skip your task. Please try again.');
     }
   };
 
@@ -165,10 +165,10 @@ export function DailyPlanner() {
     try {
       await TaskService.deleteTask(taskId);
       setTasks(prev => prev.filter(task => task.id !== taskId));
-      toast.success('Task deleted');
+      toast.success('Task deleted.');
     } catch (error) {
       console.error('Error deleting task:', error);
-      toast.error('Failed to delete task');
+      toast.error('We couldn’t delete your task. Please try again.');
     }
   };
 

@@ -34,13 +34,13 @@ export function AuthForm() {
     try {
       if (isLogin) {
         await signInWithEmail(email, password);
-        toast.success('Successfully signed in!');
+        toast.success('Welcome back! You’ve signed in successfully.');
       } else {
         await signUpWithEmail(email, password);
-        toast.success('Account created! Please check your email to verify your account.');
+        toast.success('Your account was created! Please check your email to verify and get started.');
       }
     } catch (error: any) {
-      toast.error(error.message || 'Authentication failed');
+      toast.error('Sorry, we couldn’t sign you in. Double-check your details and try again.');
       console.error('Auth error:', error);
     } finally {
       setLoading(false);
@@ -50,13 +50,18 @@ export function AuthForm() {
   const handleOAuthLogin = async (provider: 'google' | 'microsoft') => {
     try {
       setLoading(true);
+      let result;
       if (provider === 'google') {
-        await signInWithGoogle();
+        result = await signInWithGoogle();
       } else {
-        await signInWithMicrosoft();
+        result = await signInWithMicrosoft();
+      }
+      if (result && !result.success) {
+        toast.error(result.error || `Oops! Signing in with ${provider} didn’t work. Please try again.`);
+        return;
       }
     } catch (error) {
-      toast.error(`Failed to sign in with ${provider}`);
+      toast.error(`Oops! Signing in with ${provider} didn’t work. Please try again.`);
       console.error('OAuth error:', error);
     } finally {
       setLoading(false);

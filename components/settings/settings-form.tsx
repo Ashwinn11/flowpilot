@@ -14,8 +14,7 @@ import { useProfile } from "@/hooks/use-profile";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
-export function SettingsForm() {
-  const { profile, loading, saving, trialDaysLeft, updateProfile, getOAuthInfo } = useProfile();
+export function SettingsForm({ profile, loading, saving, trialDaysLeft, updateProfile, getOAuthInfo, profileError, retryProfileFetch }) {
   const { user } = useAuth();
   const oauthInfo = getOAuthInfo();
   const initializedRef = useRef(false);
@@ -80,7 +79,9 @@ export function SettingsForm() {
 
     const result = await updateProfile(updates);
     if (result) {
-      toast.success("Settings saved successfully");
+      toast.success("Your settings have been saved!");
+    } else {
+      toast.error('We couldn’t save your settings. Please try again soon.');
     }
   };
 
@@ -108,6 +109,19 @@ export function SettingsForm() {
     );
   }
 
+  if (profileError) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <span className="text-red-500 mb-4">{profileError}</span>
+            <Button onClick={retryProfileFetch}>Try Again</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Profile Settings */}
@@ -124,7 +138,7 @@ export function SettingsForm() {
         <CardContent className="space-y-6">
           <div className="flex items-center space-x-4">
             <Avatar className="w-20 h-20">
-              <AvatarImage src={getAvatarUrl()} />
+              <AvatarImage src={getAvatarUrl()} alt={formData.name || oauthInfo?.name || user?.email?.split('@')[0] || 'User avatar'} />
               <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
             </Avatar>
             <div>

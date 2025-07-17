@@ -10,9 +10,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useProfile } from "@/hooks/use-profile";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { ProfileService, UserProfile } from '@/lib/profiles';
 
-export function ProfileTest() {
-  const { profile, loading, saving, trialDaysLeft, updateProfile, getOAuthInfo } = useProfile();
+interface ProfileTestProps {
+  profile: UserProfile | null;
+  loading: boolean;
+  saving: boolean;
+  trialDaysLeft: number;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<UserProfile | null>;
+  getOAuthInfo: () => { name?: string; email?: string; avatar_url?: string; provider?: string } | null;
+}
+
+export function ProfileTest({ profile, loading, saving, trialDaysLeft, updateProfile, getOAuthInfo }: ProfileTestProps) {
   const { user } = useAuth();
   const oauthInfo = getOAuthInfo();
   const [testName, setTestName] = useState("");
@@ -25,8 +34,10 @@ export function ProfileTest() {
     });
 
     if (result) {
-      toast.success("Test update successful!");
+      toast.success("Test update complete! Your changes are live.");
       setTestName("");
+    } else {
+      toast.error('Sorry, we couldn’t update your profile. Please try again.');
     }
   };
 
@@ -40,7 +51,9 @@ export function ProfileTest() {
     });
 
     if (result) {
-      toast.success("Profile reset successful!");
+      toast.success("Profile reset! Everything’s back to default.");
+    } else {
+      toast.error('We couldn’t reset your profile. Please try again.');
     }
   };
 
@@ -70,7 +83,7 @@ export function ProfileTest() {
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-4">
             <Avatar className="w-16 h-16">
-              <AvatarImage src={oauthInfo?.avatar_url} />
+              <AvatarImage src={oauthInfo?.avatar_url} alt={profile?.name || oauthInfo?.name || user?.email?.split('@')[0] || 'User avatar'} />
               <AvatarFallback>
                 {profile?.name?.charAt(0) || oauthInfo?.name?.charAt(0) || 'U'}
               </AvatarFallback>

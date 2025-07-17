@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { TaskService } from '@/lib/tasks';
 
 export function useAuth() {
+  console.log('[DEBUG] useAuth hook run', new Date().toISOString());
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -18,6 +19,8 @@ export function useAuth() {
       
       setUser(session?.user ?? null);
       setLoading(false);
+      console.log('[DEBUG] useAuth setUser', session?.user);
+      console.log('[DEBUG] useAuth setLoading', false);
       
       // Create user profile in background, don't block UI
       if (session?.user) {
@@ -34,6 +37,8 @@ export function useAuth() {
         
         setUser(session?.user ?? null);
         setLoading(false);
+        console.log('[DEBUG] useAuth setUser', session?.user);
+        console.log('[DEBUG] useAuth setLoading', false);
         
         if (event === 'SIGNED_IN' && session?.user) {
           // Don't await these - let them happen in background
@@ -52,13 +57,22 @@ export function useAuth() {
   const createUserProfile = async (user: User) => {
     try {
       // Check if user profile already exists
-      const { data: existingProfile } = await supabase
+      const { data: existingProfile, error: selectError, status } = await supabase
         .from('user_profiles')
         .select('id')
         .eq('id', user.id)
         .single();
 
-      if (!existingProfile) {
+      const isNoRows = selectError && selectError.code === 'PGRST116';
+      const is406 = status === 406;
+
+      // Only skip insert if selectError is a real error (not 406 or PGRST116)
+      if (selectError && !isNoRows && !is406) {
+        console.error('Error checking for existing profile:', selectError);
+        return;
+      }
+
+      if (!existingProfile && (isNoRows || is406 || !selectError)) {
         // Detect user's timezone
         let userTimezone = 'UTC';
         try {
@@ -78,7 +92,7 @@ export function useAuth() {
         }
 
         // Create new user profile
-        const { error } = await supabase
+        const { error: insertError, status: insertStatus } = await supabase
           .from('user_profiles')
           .insert({
             id: user.id,
@@ -89,33 +103,63 @@ export function useAuth() {
             is_pro_user: false
           });
 
-        if (error) {
-          console.error('Error creating user profile:', error);
+        if (insertError && insertStatus !== 409) { // 409 = duplicate, ignore
+          if (insertError instanceof Error) {
+            console.error('Error creating user profile:', insertError.message, insertError.stack);
+          } else if (typeof insertError === 'object') {
+            console.error('Error creating user profile:', JSON.stringify(insertError));
+          } else {
+            console.error('Error creating user profile:', insertError);
+          }
         }
       }
     } catch (error) {
-      console.error('Error in createUserProfile:', error);
+      if (error instanceof Error) {
+        console.error('Error in createUserProfile:', error.message, error.stack);
+      } else if (typeof error === 'object') {
+        console.error('Error in createUserProfile:', JSON.stringify(error));
+      } else {
+        console.error('Error in createUserProfile:', error);
+      }
     }
   };
 
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/dashboard`
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+      if (error) {
+        console.error('Google OAuth error:', error);
+        return { success: false, error: error.message || 'Google sign-in failed. Please try again.' };
       }
-    });
-    if (error) throw error;
+      return { success: true };
+    } catch (err: any) {
+      console.error('Google OAuth unexpected error:', err);
+      return { success: false, error: err.message || 'Unexpected error during Google sign-in.' };
+    }
   };
 
   const signInWithMicrosoft = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'azure',
-      options: {
-        redirectTo: `${window.location.origin}/dashboard`
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+      if (error) {
+        console.error('Microsoft OAuth error:', error);
+        return { success: false, error: error.message || 'Microsoft sign-in failed. Please try again.' };
       }
-    });
-    if (error) throw error;
+      return { success: true };
+    } catch (err: any) {
+      console.error('Microsoft OAuth unexpected error:', err);
+      return { success: false, error: err.message || 'Unexpected error during Microsoft sign-in.' };
+    }
   };
 
   const signUpWithEmail = async (email: string, password: string) => {

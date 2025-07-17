@@ -12,6 +12,7 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  console.log('[DEBUG] ProtectedRoute rendered', new Date().toISOString(), { user, loading });
 
   // Memoize the auth state to prevent unnecessary re-renders
   const authState = useMemo(() => ({
