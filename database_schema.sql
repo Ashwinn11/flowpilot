@@ -100,13 +100,17 @@ create policy "Users can view their own profile"
   on user_profiles for select
   using (auth.uid() = id);
 
-create policy "Users can insert their own tasks"
-  on tasks for insert
-  with check (auth.uid() = user_id);
+create policy "Users can receive realtime on their profile"
+  on user_profiles for select
+  using (auth.uid() = id);
 
 create policy "Users can update their own profile"
   on user_profiles for update
   using (auth.uid() = id);
+
+create policy "Users can insert their own tasks"
+  on tasks for insert
+  with check (auth.uid() = user_id);
 
 -- Enable RLS and add policies for user_integrations
 alter table user_integrations enable row level security;
@@ -121,6 +125,7 @@ alter table tasks enable row level security;
 create policy "Users can manage their own tasks"
   on tasks for all
   using (auth.uid() = user_id);
+
 
 -- Enable RLS and add policies for task_logs
 alter table task_logs enable row level security;
