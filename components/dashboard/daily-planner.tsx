@@ -186,7 +186,6 @@ export function DailyPlanner() {
         </div>
         
         <div className="flex items-center space-x-3">
-        >
           <Button
             variant={viewMode === "cards" ? "default" : "outline"}
             size="sm"

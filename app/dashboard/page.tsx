@@ -1,3 +1,5 @@
+"use client";
+
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DailyPlanner } from "@/components/dashboard/daily-planner";
 import { ProtectedRoute } from "@/components/auth/protected-route";

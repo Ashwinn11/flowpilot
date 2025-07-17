@@ -1,0 +1,236 @@
+Here's the detailed Product Requirements Document (PRD) for FlowPilot, using the structure you've outlined:
+
+---
+
+## <context>
+
+### # Overview
+
+**FlowPilot** is an AI-based personal productivity planner designed to help users schedule, prioritize, and complete their tasks effectively. It intelligently integrates with users' calendars (Google and Microsoft), captures tasks through voice/text, and automatically organizes and reschedules tasks based on behavior, availability, and priority. It is ideal for busy professionals, freelancers, students, or anyone looking to regain control over their time. The value proposition lies in reducing mental fatigue, increasing daily efficiency, and adapting to the user’s productivity patterns.
+
+---
+
+## <PRD>
+
+### # Core Features
+
+#### 1. Smart Task Ingestion
+
+* **What it does:** Allows users to input tasks via text or voice.
+* **Why it's important:** Lowers friction for adding tasks.
+* **How:** Voice-to-text via Whisper/OpenAI, transformed into structured tasks using -mini.
+
+#### 2. Calendar Integration
+
+* **What it does:** Connects with Google/Outlook calendars to import events and detect free time.
+* **Why:** Enables task auto-scheduling and a unified view.
+* **How:** OAuth scopes for `calendar.readonly`, event detection using time parsing logic.
+
+#### 3. Task Prioritization Engine
+
+* **What it does:** Prioritizes tasks based on archetypes (urgent, deep work, meetings, etc.).
+* **Why:** Ensures meaningful output and helps avoid burnout.
+* **How:** LLM-based inference if user doesn’t set priority manually.
+
+#### 4. Adaptive Rescheduling
+
+* **What it does:** Automatically reschedules missed tasks and adapts based on user behavior.
+* **Why:** Keeps productivity continuous without micromanagement.
+* **How:** Task "retry" queue and progressive priority bump.
+
+#### 5. Productive Hours Detection
+
+* **What it does:** Learns from actual task completion to infer peak productivity windows.
+* **Why:** Improves planning accuracy.
+* **How:** Tracks completion timestamps and skipped rates.
+
+#### 6. Daily Planner & Timeline
+
+* **What it does:** Provides a clean, daily view with time blocks.
+* **Why:** Keeps user focused on “today.”
+* **How:** Combines calendar + AI-filled gaps with UI filters.
+
+#### 7. Chat Interface
+
+* **What it does:** Allows natural queries like "When am I free next?" or "Suggest something to do now."
+* **Why:** Adds conversational UX.
+* **How:** Chat interface backed by OpenAI function calling with dynamic task/context memory.
+
+#### 8. Analytics (Mini)
+
+* **What it does:** Visuals on task completion, skipped tasks, best productivity hours.
+* **Why:** Feedback loop for improvement.
+* **How:** Dashboard with simple charts, local or server-side analytics.
+
+#### 9. Offline Mode (V2)
+
+* **What it does:** Enables offline task viewing and completion.
+* **Why:** Mobile-first and PWA-friendly.
+* **How:** IndexedDB/local storage with sync on re-connect.
+
+#### 10. Integration Layer (Slack, Notion) - V2
+
+* **What it does:** Push tasks into Slack or pull meeting notes from Notion.
+* **Why:** Meet user where they already work.
+* **How:** Webhooks and external API integrations.
+
+---
+
+### # User Experience
+
+#### User Personas
+
+* **Busy Professionals:** Want structured days and intelligent planning.
+* **Students:** Need help organizing tasks and maximizing study time.
+* **Freelancers:** Want self-discipline and better self-management.
+
+#### Key Flows
+
+1. **Signup/Login**
+
+   * OAuth with Google/Microsoft or email-password
+   * Prompt user for calendar connection (OAuth again)
+2. **Initial Setup**
+
+   * Ask: work hours, preferred start/end time, behavior (proactive/reactive)
+3. **Task Intake**
+
+   * Typed or voice (speech-to-task)
+   * Auto-filled from calendar
+4. **Task View**
+
+   * Weekly view of filled slots
+   * Highlight: priority, archetype, pending tasks
+5. **Task Completion**
+
+   * User marks complete
+   * Skipped tasks reflow automatically
+6. **Chat**
+
+   * "What should I do now?", "What’s my plan for today?"
+
+#### UI/UX Considerations
+
+* Clean UI inspired by **Linear**, **Notion**, **Motion**.
+* Y Combinator/Airbnb font and spacing theme.
+* Minimal animation, high contrast focus blocks.
+* "One Big Thing" mode to eliminate distractions.
+
+---
+
+### # Technical Architecture
+
+#### System Components
+
+* **Frontend:** Next.js + Tailwind + Capacitor (PWA now, scalable to native)
+* **Backend:** Edge Functions via Vercel/Cloudflare
+* **Auth:** Supabase (Google/Microsoft OAuth)
+* **Database:** Supabase (Postgres)
+* **AI:** OpenAI API (GPT-4o-mini for reasoning + Whisper for transcription)
+* **Task Scheduler Engine:** Custom logic server-side
+* **Calendar Sync:** Google/Outlook APIs
+* **Payment:** Stripe for 1-week trial → paid plans
+
+#### Data Models (Simplified)
+
+* `users`: profile, timezone, preferences
+* `user_integrations`: provider, access\_token, refresh\_token
+* `tasks`: title, start\_time, end\_time, archetype, priority, status
+* `task_logs`: completion timestamps, skipped counts
+* `schedules`: daily plan snapshots
+
+#### APIs/Integrations
+
+* Google Calendar API
+* Microsoft Graph API
+* OpenAI (Whisper, GPT)
+* Stripe Billing API
+
+#### Infrastructure
+
+* Vercel hosting
+* Supabase backend + Auth + Realtime
+* Cron job/Edge worker for daily reschedules
+
+---
+
+### # Development Roadmap
+
+#### MVP (Phase 1)
+
+* Login via Supabase (Google, Microsoft)
+* Task ingestion (text/voice)
+* Google Calendar integration (read)
+* AI-driven task prioritization
+* Manual task completion
+* Daily/weekly planner UI
+* Chat: “What should I do now?”
+
+#### Phase 2
+
+* Productive hours tracking
+* Missed task retry engine
+* Slack/Notion integrations
+* Offline mode (mobile + web sync)
+* Analytics dashboard
+
+#### Phase 3
+
+* Smart reminders
+* Cross-timezone task handling
+* Team planning (multi-user calendar sync)
+
+---
+
+### # Logical Dependency Chain
+
+1. Auth system and calendar connection
+2. Task ingestion (manual + calendar sync)
+3. Daily planner UI
+4. Rescheduling engine
+5. Productivity insights
+6. Chat interface
+7. Offline support + integrations
+
+---
+
+### # Risks and Mitigations
+
+#### 1. Calendar Conflicts
+
+* Detect overlaps, highlight collisions visually.
+
+#### 2. OAuth Confusion
+
+* Edge case: same email used for different providers → distinct token linkage required.
+
+#### 3. Token Expiry
+
+* Implement robust token refresh handling (Google/Microsoft offline access).
+
+#### 4. Cost Overruns (OpenAI/API usage)
+
+* Use GPT-4o-mini for non-critical LLM tasks.
+* Use cache and chunking for task analysis.
+
+#### 5. User Drop-off Post Trial
+
+* Use onboarding flows and nudges to ensure conversion during free trial.
+
+---
+
+### # Appendix
+
+#### Research Highlights
+
+* Tools like Motion, Reclaim, Notion Calendar show demand for intelligent scheduling.
+* LLMs can now understand task nuance better than rigid rule engines.
+
+#### Fonts
+
+* Use `Inter` or `SF Pro` for modern, readable style.
+* Spacing model like Airbnb or Linear.
+
+---
+
+Would you like me to generate this in a downloadable markdown/PDF version or integrate it directly with your project folder (via cursor or GitHub)?

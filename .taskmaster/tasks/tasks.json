@@ -1,0 +1,137 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Setup Project Repository",
+        "description": "Initialize the project repository with the necessary structure and configurations for FlowPilot.",
+        "details": "Create a Git repository and set up the basic folder structure for frontend (Next.js) and backend (Edge Functions). Include a README file with project overview and setup instructions.",
+        "testStrategy": "Ensure the repository is accessible and properly structured by cloning it and verifying the folder hierarchy.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Implement Authentication System",
+        "description": "Set up user authentication using Supabase for Google and Microsoft OAuth.",
+        "details": "Integrate Supabase for user authentication, configure OAuth scopes, and handle user sessions. Create endpoints for login and token management.",
+        "testStrategy": "Test the authentication flow by logging in with both Google and Microsoft accounts, ensuring tokens are correctly issued and stored.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Integrate Google Calendar API",
+        "description": "Connect the application with Google Calendar to import events and detect free time.",
+        "details": "Use OAuth scopes for `calendar.readonly` to access user calendars. Implement event detection logic to identify free time slots.",
+        "testStrategy": "Verify calendar integration by fetching events and checking for free time slots, ensuring the data is displayed correctly in the application.",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Implement Task Ingestion Feature",
+        "description": "Allow users to input tasks via text or voice using OpenAI's Whisper for transcription.",
+        "details": "Integrate OpenAI's Whisper API for voice-to-text functionality and create a structured task model to capture user input.",
+        "testStrategy": "Test task ingestion by inputting tasks both via text and voice, ensuring they are correctly structured and stored in the database.",
+        "priority": "high",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Develop Task Prioritization Engine",
+        "description": "Create an engine to prioritize tasks based on user-defined archetypes and LLM inference.",
+        "details": "Implement logic to categorize tasks into archetypes (urgent, deep work, etc.) and utilize LLM for automatic prioritization when user input is absent.",
+        "testStrategy": "Validate the prioritization engine by inputting various tasks and checking if they are categorized and prioritized correctly.",
+        "priority": "medium",
+        "dependencies": [
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Build Daily Planner UI",
+        "description": "Design and implement a daily planner interface that displays tasks in time blocks.",
+        "details": "Use Next.js and Tailwind CSS to create a clean UI for the daily planner, integrating calendar events and AI-generated tasks.",
+        "testStrategy": "Conduct usability testing to ensure the planner is intuitive and displays tasks accurately, including time blocks and priorities.",
+        "priority": "medium",
+        "dependencies": [
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Implement Adaptive Rescheduling Logic",
+        "description": "Create a system to automatically reschedule missed tasks based on user behavior.",
+        "details": "Develop a task retry queue that adjusts task priorities based on completion patterns and user behavior.",
+        "testStrategy": "Simulate missed tasks and verify that they are rescheduled correctly, with appropriate priority adjustments reflected in the planner.",
+        "priority": "medium",
+        "dependencies": [
+          6
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Create Chat Interface",
+        "description": "Develop a chat interface that allows users to interact with the planner using natural language queries.",
+        "details": "Integrate OpenAI's function calling capabilities to handle user queries and provide contextual responses based on task data.",
+        "testStrategy": "Test the chat interface with various queries to ensure it responds accurately and contextually to user requests.",
+        "priority": "medium",
+        "dependencies": [
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Implement Analytics Dashboard",
+        "description": "Build a dashboard to visualize task completion rates, skipped tasks, and productivity insights.",
+        "details": "Create visual representations of user data using charts and graphs, leveraging local or server-side analytics.",
+        "testStrategy": "Validate the analytics dashboard by comparing displayed data against raw task logs to ensure accuracy in visualizations.",
+        "priority": "medium",
+        "dependencies": [
+          8
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Enable Offline Mode Functionality",
+        "description": "Implement offline support for task viewing and completion using IndexedDB/local storage.",
+        "details": "Utilize IndexedDB to store tasks locally and sync changes when the user reconnects to the internet.",
+        "testStrategy": "Test offline functionality by disconnecting from the internet, completing tasks, and verifying that changes sync correctly upon reconnection.",
+        "priority": "medium",
+        "dependencies": [
+          9
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-07-17T00:25:05.040Z",
+      "updated": "2025-07-17T00:25:05.040Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
