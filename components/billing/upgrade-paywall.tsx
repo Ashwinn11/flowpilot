@@ -51,7 +51,7 @@ export function UpgradePaywall() {
           Trial Over. Continue Your Productivity Streak.
         </CardTitle>
         <CardDescription className="text-lg">
-          Upgrade to Pro to keep using FlowPilot's powerful features
+          Upgrade to Pro to keep using FlowPilot&apos;s powerful features
         </CardDescription>
       </CardHeader>
 

@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 
-export function DashboardHeader({ profile, trialDaysLeft, oauthInfo }) {
+export function DashboardHeader({ profile, trialDaysLeft, oauthInfo }: any) {
   const { user, signOut } = useAuth();
   const router = useRouter();
 

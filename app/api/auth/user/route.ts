@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { AuthValidator, AuthSecurity, RateLimit } from '@/lib/auth-validation';
 
 export async function GET(request: NextRequest) {
   try {
@@ -71,40 +72,51 @@ export async function PATCH(request: NextRequest) {
       }
     );
     
+    // Rate limiting check
+    const clientIP = AuthSecurity.getClientIP(request);
+    if (RateLimit.isRateLimited(`profile_update_${clientIP}`, 10, 60 * 1000)) { // 10 requests per minute
+      const timeUntilReset = RateLimit.getTimeUntilReset(`profile_update_${clientIP}`, 60 * 1000);
+      return NextResponse.json(
+        { 
+          error: 'Too many profile update requests. Please try again later.',
+          retryAfter: Math.ceil(timeUntilReset / 1000)
+        },
+        { status: 429 }
+      );
+    }
+    
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
     if (userError || !user) {
       return NextResponse.json(
-        { error: 'Not authenticated' },
+        AuthSecurity.generateSecureErrorResponse(userError, 'Not authenticated'),
         { status: 401 }
       );
     }
 
     const body = await request.json();
-    const { name, timezone, workHours, email } = body;
-
-    // Validate input
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    
+    // Enhanced validation using AuthValidator
+    const validation = AuthValidator.validateProfileUpdate(body);
+    if (!validation.isValid) {
       return NextResponse.json(
-        { error: 'Invalid email format' },
+        { 
+          error: AuthValidator.getErrorMessage(validation.errors),
+          validationErrors: validation.errors
+        },
         { status: 400 }
       );
     }
 
-    if (timezone && !Intl.supportedValuesOf('timeZone').includes(timezone)) {
-      return NextResponse.json(
-        { error: 'Invalid timezone' },
-        { status: 400 }
-      );
-    }
+    const sanitizedData = validation.sanitizedData!;
 
-    // Update user profile in our database
+    // Update user profile in our database using sanitized data
     const profileUpdates: any = {};
-    if (name !== undefined) profileUpdates.name = name;
-    if (timezone !== undefined) profileUpdates.timezone = timezone;
-    if (workHours !== undefined) profileUpdates.work_hours = workHours;
-    if (email !== undefined) profileUpdates.email = email;
+    if (sanitizedData.name !== undefined) profileUpdates.name = sanitizedData.name;
+    if (sanitizedData.timezone !== undefined) profileUpdates.timezone = sanitizedData.timezone;
+    if (sanitizedData.workHours !== undefined) profileUpdates.work_hours = sanitizedData.workHours;
+    if (sanitizedData.email !== undefined) profileUpdates.email = sanitizedData.email;
 
     if (Object.keys(profileUpdates).length > 0) {
       profileUpdates.updated_at = new Date().toISOString();
@@ -126,11 +138,11 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Update auth metadata if name is being changed
-    if (name !== undefined) {
+    if (sanitizedData.name !== undefined) {
       const { error: authUpdateError } = await supabase.auth.updateUser({
         data: { 
-          name: name,
-          full_name: name
+          name: sanitizedData.name,
+          full_name: sanitizedData.name
         }
       });
 
@@ -141,14 +153,14 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Update email in auth if provided
-    if (email !== undefined && email !== user.email) {
+    if (sanitizedData.email !== undefined && sanitizedData.email !== user.email) {
       const { error: emailUpdateError } = await supabase.auth.updateUser({
-        email: email
+        email: sanitizedData.email
       });
 
       if (emailUpdateError) {
         return NextResponse.json(
-          { error: 'Failed to update email: ' + emailUpdateError.message },
+          AuthSecurity.generateSecureErrorResponse(emailUpdateError, 'Failed to update email. Please check your input and try again.'),
           { status: 400 }
         );
       }
@@ -165,8 +177,8 @@ export async function PATCH(request: NextRequest) {
       success: true,
       user: {
         id: user.id,
-        email: email || user.email,
-        name: name || updatedProfile?.name || user.user_metadata?.name,
+        email: sanitizedData.email || user.email,
+        name: sanitizedData.name || updatedProfile?.name || user.user_metadata?.name,
         avatar: user.user_metadata?.avatar_url,
         provider: user.app_metadata?.provider
       },
@@ -175,9 +187,8 @@ export async function PATCH(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('User update error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      AuthSecurity.generateSecureErrorResponse(error, 'An unexpected error occurred while updating your profile'),
       { status: 500 }
     );
   }

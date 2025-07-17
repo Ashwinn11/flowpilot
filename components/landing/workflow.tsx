@@ -156,7 +156,7 @@ export function Workflow() {
                     <Mic className="w-12 h-12 text-blue-600 mx-auto mb-4" />
                     <div className="bg-white dark:bg-slate-800 rounded-lg p-4 shadow-sm">
                       <p className="text-sm text-slate-700 dark:text-slate-300 italic">
-                        "Prepare presentation slides for the board meeting tomorrow at 2 PM"
+                        &ldquo;Prepare presentation slides for the board meeting tomorrow at 2 PM&rdquo;
                       </p>
                     </div>
                   </div>

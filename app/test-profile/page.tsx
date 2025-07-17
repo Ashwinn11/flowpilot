@@ -1,3 +1,5 @@
+"use client";
+
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { ProfileTest } from "@/components/test/profile-test";
@@ -24,7 +26,7 @@ export default function TestProfilePage() {
               loading={false}
               saving={false}
               trialDaysLeft={trialDaysLeft}
-              updateProfile={() => {}}
+              updateProfile={async () => null}
               getOAuthInfo={getOAuthInfo}
             />
           </div>

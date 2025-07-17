@@ -184,19 +184,14 @@ class SessionMonitorService {
   }
 
   /**
-   * Show session expiration warning to user
+   * Show session expiration warning to user (only for critical failures)
    */
   private showExpirationWarning(minutesLeft: number): void {
-    toast.warning(
-      `Your session will expire in ${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''}. Your work will be saved automatically.`,
-      {
-        duration: 10000,
-        action: {
-          label: 'Extend Session',
-          onClick: () => this.refreshSession()
-        }
-      }
-    );
+    // Silent operation - only log for debugging
+    console.log(`[SessionMonitor] Session expires in ${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''}, auto-refresh will handle this`);
+    
+    // Only show warning if auto-refresh has repeatedly failed
+    // This creates a better UX by not showing unnecessary notifications
   }
 
   /**

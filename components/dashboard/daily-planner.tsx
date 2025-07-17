@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,21 @@ export function DailyPlanner() {
   const completedTasks = tasks.filter(task => task.status === "completed").length;
   const totalTasks = tasks.length;
 
+  const loadTodayTasks = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const todayTasks = await TaskService.getTasksForDate(user.id, today);
+      setTasks(todayTasks);
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+      toast.error('We couldn\'t load your tasks. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
   // Load tasks for today with optimistic loading
   useEffect(() => {
     if (user) {
@@ -38,7 +53,7 @@ export function DailyPlanner() {
     } else {
       setLoading(false); // Don't keep loading if no user
     }
-  }, [user]);
+  }, [user, loadTodayTasks]);
 
   // Check for end of day (after 6 PM)
   useEffect(() => {
@@ -54,21 +69,6 @@ export function DailyPlanner() {
 
     checkEndOfDay();
   }, []);
-
-  const loadTodayTasks = async () => {
-    if (!user) return;
-    
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const todayTasks = await TaskService.getTasksForDate(user.id, today);
-      setTasks(todayTasks);
-    } catch (error) {
-      console.error('Error loading tasks:', error);
-      toast.error('We couldn’t load your tasks. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleEndOfDaySubmit = async (feedback: any) => {
     if (!user) return;

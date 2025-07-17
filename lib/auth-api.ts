@@ -115,7 +115,8 @@ export class AuthAPI {
       }
 
       if (data.refreshed) {
-        toast.success('Session refreshed successfully');
+        // Silent refresh - no need to notify user of successful background operation
+        console.log('[AuthAPI] Session refreshed successfully');
       }
 
       return data;

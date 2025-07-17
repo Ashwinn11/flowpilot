@@ -74,22 +74,16 @@ export function SessionStatus() {
   };
 
   const getStatusText = (health: SessionHealth): string => {
-    if (!health.isValid) return 'Invalid';
-    if (!health.timeUntilExpiry) return 'Active';
-    
-    const minutesLeft = health.timeUntilExpiry / (1000 * 60);
-    if (minutesLeft <= 10) return 'Expiring Soon';
-    if (minutesLeft <= 30) return 'Warning';
-    return 'Active';
+    if (!health.isValid) return 'Offline';
+    return 'Online';
   };
 
   if (!user || !sessionHealth) {
     return null;
   }
 
-  const statusColor = getStatusColor(sessionHealth);
   const statusText = getStatusText(sessionHealth);
-  const timeLeft = sessionHealth.timeUntilExpiry ? formatTimeUntilExpiry(sessionHealth.timeUntilExpiry) : null;
+  const isOnline = sessionHealth.isValid;
 
   return (
     <TooltipProvider>
@@ -97,54 +91,21 @@ export function SessionStatus() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Badge 
-              variant={statusColor === 'success' ? 'default' : statusColor === 'warning' ? 'secondary' : 'destructive'}
+              variant={isOnline ? 'default' : 'destructive'}
               className="flex items-center gap-1 cursor-pointer"
             >
               <Shield className="w-3 h-3" />
               {statusText}
-              {timeLeft && (
-                <>
-                  <Clock className="w-3 h-3 ml-1" />
-                  {timeLeft}
-                </>
-              )}
             </Badge>
           </TooltipTrigger>
           <TooltipContent>
-            <div className="text-xs space-y-1">
-              <div>Session Status: {sessionHealth.isValid ? 'Valid' : 'Invalid'}</div>
-              {sessionHealth.expiresAt && (
-                <div>
-                  Expires: {new Date(sessionHealth.expiresAt).toLocaleTimeString()}
-                </div>
-              )}
-              <div>
-                Last checked: {new Date(lastCheck).toLocaleTimeString()}
-              </div>
+            <div className="text-xs">
+              {isOnline ? 'You are signed in and connected' : 'Please sign in to continue'}
             </div>
           </TooltipContent>
         </Tooltip>
 
-        {sessionHealth.isValid && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleManualRefresh}
-                disabled={isRefreshing}
-                className="h-6 w-6 p-0"
-              >
-                <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <div className="text-xs">
-                {isRefreshing ? 'Refreshing session...' : 'Refresh session'}
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        )}
+        {/* Remove manual refresh button - session refresh is automatic */}
       </div>
     </TooltipProvider>
   );

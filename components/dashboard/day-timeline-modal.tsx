@@ -210,7 +210,7 @@ export function DayTimelineModal({ isOpen, onClose, selectedTask }: DayTimelineM
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <Calendar className="w-5 h-5 mr-2 text-blue-600" />
-            Today's Timeline
+            Today&apos;s Timeline
             {selectedTask && (
               <Badge variant="outline" className="ml-3">
                 Focused on: {selectedTask.title}

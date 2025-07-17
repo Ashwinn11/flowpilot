@@ -20,18 +20,18 @@ const AIAssistant = dynamic(
   { ssr: false }
 );
 
-function isDefaultWorkHours(workHours) {
+function isDefaultWorkHours(workHours: any) {
   if (!workHours) return true;
   return (
     workHours.start === "09:00" &&
     workHours.end === "17:00" &&
     Array.isArray(workHours.days) &&
     workHours.days.length === 5 &&
-    workHours.days.every((d, i) => d === i + 1)
+    workHours.days.every((d: any, i: number) => d === i + 1)
   );
 }
 
-function OnboardingWorkPreferencesModal({ open, onSave, initialWorkHours, saving }) {
+function OnboardingWorkPreferencesModal({ open, onSave, initialWorkHours, saving }: any) {
   const [workHours, setWorkHours] = useState(initialWorkHours || { start: "09:00", end: "17:00", days: [1,2,3,4,5] });
   const [error, setError] = useState("");
 
@@ -100,7 +100,7 @@ function OnboardingWorkPreferencesModal({ open, onSave, initialWorkHours, saving
                 size="sm"
                 onClick={() => {
                   const days = workHours.days.includes(index + 1)
-                    ? workHours.days.filter(d => d !== index + 1)
+                    ? workHours.days.filter((d: any) => d !== index + 1)
                     : [...workHours.days, index + 1].sort();
                   setWorkHours({ ...workHours, days });
                 }}
@@ -136,7 +136,7 @@ export default function Dashboard() {
     }
   }, [profile, loading]);
 
-  const handleSaveWorkPrefs = async (workHours) => {
+  const handleSaveWorkPrefs = async (workHours: any) => {
     const result = await updateProfile({ work_hours: workHours });
     if (result) {
       setShowOnboarding(false);

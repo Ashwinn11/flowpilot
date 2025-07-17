@@ -7,10 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { GoogleIcon, MicrosoftIcon } from "@/components/ui/icons";
-import { Mail, Eye, EyeOff } from "lucide-react";
+import { Mail, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { AuthValidator, AuthValidationError } from "@/lib/auth-validation";
 
 export function AuthForm() {
   const { user, signInWithGoogle, signInWithMicrosoft, signUpWithEmail, signInWithEmail } = useAuth();
@@ -20,6 +21,8 @@ export function AuthForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<AuthValidationError[]>([]);
+  const [passwordStrength, setPasswordStrength] = useState<{score: number; feedback: string[]; isStrong: boolean} | null>(null);
 
   useEffect(() => {
     if (user) {
