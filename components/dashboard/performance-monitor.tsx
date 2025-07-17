@@ -9,7 +9,9 @@ export function PerformanceMonitor() {
       const observer = new PerformanceObserver((list) => {
         const entries = list.getEntries();
         entries.forEach((entry) => {
-          console.log(`Performance: ${entry.name} took ${entry.duration.toFixed(2)}ms`);
+          if (process.env.NODE_ENV !== 'production') {
+            console.log(`Performance: ${entry.name} took ${entry.duration.toFixed(2)}ms`);
+          }
         });
       });
 

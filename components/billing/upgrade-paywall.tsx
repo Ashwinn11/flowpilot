@@ -36,7 +36,9 @@ export function UpgradePaywall() {
 
   const handleUpgrade = async () => {
     // TODO: Integrate with Stripe
-    console.log("Upgrading to", selectedPlan);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log("Upgrading to", selectedPlan);
+    }
   };
 
   return (

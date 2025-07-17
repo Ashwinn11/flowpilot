@@ -11,13 +11,27 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Clock, Bell, Palette, Shield, CreditCard, Loader2 } from "lucide-react";
 import { useProfile } from "@/hooks/use-profile";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/contexts/auth-context";
+import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
-export function SettingsForm({ profile, loading, saving, trialDaysLeft, updateProfile, getOAuthInfo, profileError, retryProfileFetch }) {
+interface SettingsFormProps {
+  profile: any;
+  loading: boolean;
+  saving: boolean;
+  trialDaysLeft: number;
+  updateProfile: (updates: any) => Promise<any>;
+  getOAuthInfo: () => any;
+  profileError: string | null;
+  retryProfileFetch: () => void;
+}
+
+export function SettingsForm({ profile, loading, saving, trialDaysLeft, updateProfile, getOAuthInfo, profileError, retryProfileFetch }: SettingsFormProps) {
   const { user } = useAuth();
+  const { theme, setTheme } = useTheme();
   const oauthInfo = getOAuthInfo();
   const initializedRef = useRef(false);
+  const isSavingRef = useRef(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -25,42 +39,34 @@ export function SettingsForm({ profile, loading, saving, trialDaysLeft, updatePr
     timezone: "UTC", // Start with UTC, will be updated in useEffect
     workHours: { start: "09:00", end: "17:00", days: [1, 2, 3, 4, 5] },
     notifications: true, // TODO: Add to profile schema
-    darkMode: false // TODO: Add to profile schema
   });
 
   // Initialize form data once when profile loads
   useEffect(() => {
     if (profile && !initializedRef.current) {
-      // Get user's timezone from browser if not set in profile
+      // Use profile timezone as-is, no automatic sync
       const getUserTimezone = () => {
-        if (profile.timezone && profile.timezone !== 'UTC') {
+        // Use profile timezone if set, otherwise fall back to browser timezone for initial display
+        if (profile.timezone) {
           return profile.timezone;
         }
         
-        // Try to detect user's timezone from browser
+        // Only for new users with no timezone set - get browser timezone as initial value
         try {
-          const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-          
-          // If profile has UTC and we detected a different timezone, update the profile
-          if (profile.timezone === 'UTC' && browserTimezone !== 'UTC') {
-            updateProfile({ timezone: browserTimezone }).catch(console.error);
-          }
-          
-          return browserTimezone;
+          return Intl.DateTimeFormat().resolvedOptions().timeZone;
         } catch (error) {
           return 'UTC';
         }
       };
 
-      const detectedTimezone = getUserTimezone();
+      const userTimezone = getUserTimezone();
 
       setFormData({
         name: profile.name || oauthInfo?.name || "",
         email: profile.email || oauthInfo?.email || "",
-        timezone: detectedTimezone,
+        timezone: userTimezone,
         workHours: profile.work_hours || { start: "09:00", end: "17:00", days: [1, 2, 3, 4, 5] },
         notifications: true,
-        darkMode: false
       });
       
       initializedRef.current = true;
@@ -68,7 +74,9 @@ export function SettingsForm({ profile, loading, saving, trialDaysLeft, updatePr
   }, [profile, oauthInfo]);
 
   const handleSave = async () => {
-    if (!profile) return;
+    if (!profile || isSavingRef.current) return;
+    
+    isSavingRef.current = true;
 
     const updates = {
       name: formData.name,
@@ -81,8 +89,14 @@ export function SettingsForm({ profile, loading, saving, trialDaysLeft, updatePr
     if (result) {
       toast.success("Your settings have been saved!");
     } else {
-      toast.error('We couldn’t save your settings. Please try again soon.');
+      toast.error("We couldn't save your settings. Please try again soon.");
     }
+    
+    isSavingRef.current = false;
+  };
+
+  const handleThemeChange = (checked: boolean) => {
+    setTheme(checked ? "dark" : "light");
   };
 
   const getAvatarFallback = () => {
@@ -148,11 +162,6 @@ export function SettingsForm({ profile, loading, saving, trialDaysLeft, updatePr
               <p className="text-sm text-muted-foreground">
                 {formData.email || oauthInfo?.email || 'No email'}
               </p>
-              {oauthInfo?.provider && (
-                <p className="text-xs text-muted-foreground">
-                  Connected via {oauthInfo.provider === 'google' ? 'Google' : oauthInfo.provider === 'microsoft' ? 'Microsoft' : oauthInfo.provider}
-                </p>
-              )}
             </div>
           </div>
 
@@ -386,8 +395,8 @@ export function SettingsForm({ profile, loading, saving, trialDaysLeft, updatePr
               </p>
             </div>
             <Switch
-              checked={formData.darkMode}
-              onCheckedChange={(checked) => setFormData({ ...formData, darkMode: checked })}
+              checked={theme === "dark"}
+              onCheckedChange={handleThemeChange}
             />
           </div>
         </CardContent>

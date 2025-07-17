@@ -60,7 +60,10 @@ function OnboardingWorkPreferencesModal({ open, onSave, initialWorkHours, saving
 
   return (
     <Dialog open={open}>
-      <DialogContent>
+      <DialogContent aria-describedby="dashboard-dialog-desc">
+        <div id="dashboard-dialog-desc" style={{position: 'absolute', left: '-9999px', width: '1px', height: '1px', overflow: 'hidden'}}>
+          Dashboard dialog content.
+        </div>
         <DialogHeader>
           <DialogTitle>Set Your Work Preferences</DialogTitle>
           <DialogDescription>

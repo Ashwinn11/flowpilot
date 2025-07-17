@@ -72,7 +72,10 @@ export function AddTaskModal({ isOpen, onClose, onAddTask }: AddTaskModalProps) 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[525px]" aria-describedby="add-task-modal-desc">
+        <div id="add-task-modal-desc" style={{position: 'absolute', left: '-9999px', width: '1px', height: '1px', overflow: 'hidden'}}>
+          Add a new task to your dashboard.
+        </div>
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
         </DialogHeader>

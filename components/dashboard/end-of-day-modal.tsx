@@ -50,7 +50,10 @@ export function EndOfDayModal({ isOpen, onClose, onSubmit }: EndOfDayModalProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px]" aria-describedby="end-of-day-modal-desc">
+        <div id="end-of-day-modal-desc" style={{position: 'absolute', left: '-9999px', width: '1px', height: '1px', overflow: 'hidden'}}>
+          End of day summary and actions.
+        </div>
         <DialogHeader>
           <motion.div
             initial={{ scale: 0 }}

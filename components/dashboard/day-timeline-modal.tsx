@@ -203,7 +203,10 @@ export function DayTimelineModal({ isOpen, onClose, selectedTask }: DayTimelineM
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden" aria-describedby="day-timeline-modal-desc">
+        <div id="day-timeline-modal-desc" style={{position: 'absolute', left: '-9999px', width: '1px', height: '1px', overflow: 'hidden'}}>
+          Timeline and details for the selected day.
+        </div>
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <Calendar className="w-5 h-5 mr-2 text-blue-600" />

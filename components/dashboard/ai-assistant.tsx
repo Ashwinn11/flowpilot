@@ -78,7 +78,9 @@ export function AIAssistant() {
 
   const handleAction = (action: string) => {
     // TODO: Implement action handling
-    console.log("Action:", action);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log("Action:", action);
+    }
   };
 
   if (!isOpen) {

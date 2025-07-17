@@ -10,7 +10,9 @@ export class ProfileService {
    * Get the current user's profile
    */
   static async getCurrentUserProfile(): Promise<UserProfile | null> {
-    console.log('[DEBUG] getCurrentUserProfile called', new Date().toISOString());
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[DEBUG] getCurrentUserProfile called', new Date().toISOString());
+    }
     console.trace('[DEBUG] getCurrentUserProfile stack trace');
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -134,7 +136,9 @@ export class ProfileService {
   private static setupPollingFallback(userId: string, callback: (profile: UserProfile) => void) {
     // If a poller already exists for this user, do not start another
     if (this.pollingMap.has(userId)) {
-      console.log(`[Polling Fallback] Poller already running for user ${userId}`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[Polling Fallback] Poller already running for user ${userId}`);
+      }
       return {
         unsubscribe: this.pollingMap.get(userId)!.stop
       };
@@ -159,7 +163,9 @@ export class ProfileService {
         console.error(`[Polling Fallback] [UserID: ${userId}] Error:`, error);
         if (consecutiveErrors >= maxErrors) {
           stopPolling();
-          console.warn(`[Polling Fallback] [UserID: ${userId}] Stopped after too many errors.`);
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn(`[Polling Fallback] [UserID: ${userId}] Stopped after too many errors.`);
+          }
           toast.error(
             'We lost connection to your profile updates. Try refreshing the page, and if this keeps happening, please contact support@flowpilot.com.',
             { duration: 10000 }
@@ -172,7 +178,9 @@ export class ProfileService {
       if (isPolling) return;
       isPolling = true;
       toast.warning('We’re having trouble staying in sync. Profile updates might be a little slower right now.');
-      console.log(`[Polling Fallback] Starting poller for user ${userId}`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[Polling Fallback] Starting poller for user ${userId}`);
+      }
       const interval = setInterval(poll, 300000); // 5 minutes
       // Save stop function in map
       this.pollingMap.set(userId, {
@@ -188,7 +196,9 @@ export class ProfileService {
       if (poller) {
         clearInterval(poller.interval);
         this.pollingMap.delete(userId);
-        console.log(`[Polling Fallback] Stopped poller for user ${userId}`);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[Polling Fallback] Stopped poller for user ${userId}`);
+        }
       }
     };
 

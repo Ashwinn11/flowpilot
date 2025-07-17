@@ -5,7 +5,9 @@ import { SettingsForm } from "@/components/settings/settings-form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 export function SettingsPageClient() {
-  console.log('[DEBUG] SettingsPageClient mounted', new Date().toISOString());
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[DEBUG] SettingsPageClient mounted', new Date().toISOString());
+  }
   const { profile, trialDaysLeft, getOAuthInfo, loading, saving, updateProfile, profileError, retryProfileFetch } = useProfile();
 
   return (

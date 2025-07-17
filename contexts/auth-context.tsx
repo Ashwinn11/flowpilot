@@ -1,60 +1,27 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { TaskService } from '@/lib/tasks';
 
-export function useAuth() {
-  console.log('[DEBUG] useAuth hook run', new Date().toISOString());
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  signInWithGoogle: () => Promise<{ success: boolean; error?: string }>;
+  signInWithMicrosoft: () => Promise<{ success: boolean; error?: string }>;
+  signUpWithEmail: (email: string, password: string) => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let isMounted = true;
-    
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isMounted) return;
-      
-      setUser(session?.user ?? null);
-      setLoading(false);
-      console.log('[DEBUG] useAuth setUser', session?.user);
-      console.log('[DEBUG] useAuth setLoading', false);
-      
-      // Create user profile in background, don't block UI
-      if (session?.user) {
-        createUserProfile(session.user).catch(console.error);
-        // Preload today's tasks for faster dashboard loading
-        TaskService.preloadTodayTasks(session.user.id).catch(console.error);
-      }
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!isMounted) return;
-        
-        setUser(session?.user ?? null);
-        setLoading(false);
-        console.log('[DEBUG] useAuth setUser', session?.user);
-        console.log('[DEBUG] useAuth setLoading', false);
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          // Don't await these - let them happen in background
-          createUserProfile(session.user).catch(console.error);
-          TaskService.preloadTodayTasks(session.user.id).catch(console.error);
-        }
-      }
-    );
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const createUserProfile = async (user: User) => {
+  const createUserProfile = useCallback(async (user: User) => {
     try {
       // Check if user profile already exists
       const { data: existingProfile, error: selectError, status } = await supabase
@@ -122,9 +89,49 @@ export function useAuth() {
         console.error('Error in createUserProfile:', error);
       }
     }
-  };
+  }, []);
 
-  const signInWithGoogle = async () => {
+  useEffect(() => {
+    let isMounted = true;
+    
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
+      
+      setUser(session?.user ?? null);
+      setLoading(false);
+      
+      // Create user profile in background, don't block UI
+      if (session?.user) {
+        createUserProfile(session.user).catch(console.error);
+        // Preload today's tasks for faster dashboard loading
+        TaskService.preloadTodayTasks(session.user.id).catch(console.error);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!isMounted) return;
+        
+        setUser(session?.user ?? null);
+        setLoading(false);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          // Don't await these - let them happen in background
+          createUserProfile(session.user).catch(console.error);
+          TaskService.preloadTodayTasks(session.user.id).catch(console.error);
+        }
+      }
+    );
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [createUserProfile]);
+
+  const signInWithGoogle = useCallback(async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -141,9 +148,9 @@ export function useAuth() {
       console.error('Google OAuth unexpected error:', err);
       return { success: false, error: err.message || 'Unexpected error during Google sign-in.' };
     }
-  };
+  }, []);
 
-  const signInWithMicrosoft = async () => {
+  const signInWithMicrosoft = useCallback(async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'azure',
@@ -160,9 +167,9 @@ export function useAuth() {
       console.error('Microsoft OAuth unexpected error:', err);
       return { success: false, error: err.message || 'Unexpected error during Microsoft sign-in.' };
     }
-  };
+  }, []);
 
-  const signUpWithEmail = async (email: string, password: string) => {
+  const signUpWithEmail = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -171,22 +178,22 @@ export function useAuth() {
       }
     });
     if (error) throw error;
-  };
+  }, []);
 
-  const signInWithEmail = async (email: string, password: string) => {
+  const signInWithEmail = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
     if (error) throw error;
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
-  };
+  }, []);
 
-  return {
+  const value = useMemo(() => ({
     user,
     loading,
     signInWithGoogle,
@@ -194,5 +201,19 @@ export function useAuth() {
     signUpWithEmail,
     signInWithEmail,
     signOut
-  };
+  }), [user, loading, signInWithGoogle, signInWithMicrosoft, signUpWithEmail, signInWithEmail, signOut]);
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth(): AuthContextType {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }

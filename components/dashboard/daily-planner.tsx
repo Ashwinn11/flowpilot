@@ -10,7 +10,7 @@ import { AddTaskModal } from "@/components/dashboard/add-task-modal";
 import { TimelineView } from "@/components/dashboard/timeline-view";
 import { Plus, Target, Clock, CheckCircle } from "lucide-react";
 import { EndOfDayModal } from "@/components/dashboard/end-of-day-modal";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/contexts/auth-context";
 import { TaskService } from "@/lib/tasks";
 import { toast } from "sonner";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";

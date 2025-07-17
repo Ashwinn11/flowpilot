@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { GoogleIcon, MicrosoftIcon } from "@/components/ui/icons";
 import { Mail, Eye, EyeOff } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 

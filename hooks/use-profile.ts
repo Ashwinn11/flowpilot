@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useAuth } from './use-auth';
+import { useAuth } from '@/contexts/auth-context';
 import { ProfileService, UserProfile } from '@/lib/profiles';
 import { toast } from 'sonner';
 
 export function useProfile() {
-  console.log('[DEBUG] useProfile hook run', new Date().toISOString());
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,8 +42,16 @@ export function useProfile() {
     };
   }, [user?.id]);
 
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production' && profile) {
+      console.log('[DEBUG] Profile loaded:', profile);
+    }
+  }, [profile]);
+
   const loadProfile = async () => {
-    console.log('[DEBUG] loadProfile called', new Date().toISOString());
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[DEBUG] loadProfile called', new Date().toISOString());
+    }
     if (!user) {
       console.warn('loadProfile: No user found, skipping profile fetch.');
       return;
@@ -53,7 +60,9 @@ export function useProfile() {
     try {
       setLoading(true);
       setProfileError(null);
-      console.log('loadProfile: Fetching profile for user:', user.id, user.email);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('loadProfile: Fetching profile for user:', user.id, user.email);
+      }
       const userProfile = await ProfileService.getCurrentUserProfile();
       setProfile(userProfile);
       setProfileError(null);
@@ -90,10 +99,8 @@ export function useProfile() {
       
       if (updatedProfile) {
         setProfile(updatedProfile);
-        toast.success('Your profile has been updated!');
         return updatedProfile;
       } else {
-        toast.error('Failed to update profile');
         return null;
       }
     } catch (error) {

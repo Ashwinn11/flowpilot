@@ -2,7 +2,9 @@ import { SettingsPageClient } from "@/components/settings/settings-page-client";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-console.log('[DEBUG] settings/page.tsx server component rendered', new Date().toISOString());
+if (process.env.NODE_ENV !== 'production') {
+  console.log('[DEBUG] settings/page.tsx server component rendered', new Date().toISOString());
+}
 
 export default function SettingsPage() {
   return (

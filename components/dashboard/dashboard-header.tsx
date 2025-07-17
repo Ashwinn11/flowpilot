@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Zap, Settings, BarChart3, LogOut, Crown, Calendar } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/contexts/auth-context";
 import { useProfile } from "@/hooks/use-profile";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -90,11 +90,6 @@ export function DashboardHeader({ profile, trialDaysLeft, oauthInfo }) {
                     <p className="text-xs leading-none text-muted-foreground">
                       {getUserEmail()}
                     </p>
-                    {oauthInfo?.provider && (
-                      <p className="text-xs leading-none text-muted-foreground">
-                        Connected via {oauthInfo.provider === 'google' ? 'Google' : oauthInfo.provider === 'microsoft' ? 'Microsoft' : oauthInfo.provider}
-                      </p>
-                    )}
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/contexts/auth-context";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,7 +12,21 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  console.log('[DEBUG] ProtectedRoute rendered', new Date().toISOString(), { user, loading });
+  const prevUser = useRef(user);
+  const prevLoading = useRef(loading);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production") {
+      if (prevUser.current !== user) {
+        console.log("[DEBUG] ProtectedRoute user changed:", user);
+        prevUser.current = user;
+      }
+      if (prevLoading.current !== loading) {
+        console.log("[DEBUG] ProtectedRoute loading changed:", loading);
+        prevLoading.current = loading;
+      }
+    }
+  }, [user, loading]);
 
   // Memoize the auth state to prevent unnecessary re-renders
   const authState = useMemo(() => ({
