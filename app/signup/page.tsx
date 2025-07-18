@@ -1,6 +1,6 @@
-import { AuthForm } from "@/components/auth/auth-form";
+import { SignupForm } from "@/components/auth/signup-form";
 
-export default function AuthPage() {
+export default function SignupPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-purple-900 dark:to-indigo-900 relative overflow-hidden">
       {/* Decorative elements */}
@@ -15,22 +15,22 @@ export default function AuthPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
-              Welcome Back
+              Create Account
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Sign in to continue to FlowPilot
+              Join FlowPilot and boost your productivity
             </p>
           </div>
 
-          {/* Auth Form */}
+          {/* Signup Form */}
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/50 p-8">
-            <AuthForm />
+            <SignupForm />
           </div>
 
           {/* Footer */}
           <div className="text-center mt-6">
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              By signing in, you agree to our{" "}
+              By creating an account, you agree to our{" "}
               <a href="#" className="text-purple-600 hover:text-purple-500 dark:text-purple-400 dark:hover:text-purple-300 font-medium">
                 Terms of Service
               </a>{" "}
@@ -44,4 +44,4 @@ export default function AuthPage() {
       </div>
     </div>
   );
-}
+} 

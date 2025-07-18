@@ -9,6 +9,11 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Satoshi', 'Inter', 'system-ui', 'sans-serif'],
+        handwriting: ['Caveat', 'cursive'],
+        caveat: ['Caveat', 'cursive'],
+      },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic':

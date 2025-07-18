@@ -7,22 +7,19 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { GoogleIcon, MicrosoftIcon } from "@/components/ui/icons";
-import { Mail, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
+import { Mail, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AuthValidator, AuthValidationError } from "@/lib/auth-validation";
+import Link from "next/link";
 
 export function AuthForm() {
-  const { user, signInWithGoogle, signInWithMicrosoft, signUpWithEmail, signInWithEmail } = useAuth();
+  const { user, signInWithGoogle, signInWithMicrosoft, signInWithEmail } = useAuth();
   const router = useRouter();
-  const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<AuthValidationError[]>([]);
-  const [passwordStrength, setPasswordStrength] = useState<{score: number; feedback: string[]; isStrong: boolean} | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -35,15 +32,10 @@ export function AuthForm() {
     setLoading(true);
     
     try {
-      if (isLogin) {
-        await signInWithEmail(email, password);
-        toast.success('Welcome back! You’ve signed in successfully.');
-      } else {
-        await signUpWithEmail(email, password);
-        toast.success('Your account was created! Please check your email to verify and get started.');
-      }
+      await signInWithEmail(email, password);
+      toast.success('Welcome back! You\'ve signed in successfully.');
     } catch (error: any) {
-      toast.error('Sorry, we couldn’t sign you in. Double-check your details and try again.');
+      toast.error('Sorry, we couldn\'t sign you in. Double-check your details and try again.');
       console.error('Auth error:', error);
     } finally {
       setLoading(false);
@@ -60,11 +52,11 @@ export function AuthForm() {
         result = await signInWithMicrosoft();
       }
       if (result && !result.success) {
-        toast.error(result.error || `Oops! Signing in with ${provider} didn’t work. Please try again.`);
+        toast.error(result.error || `Oops! Signing in with ${provider} didn't work. Please try again.`);
         return;
       }
     } catch (error) {
-      toast.error(`Oops! Signing in with ${provider} didn’t work. Please try again.`);
+      toast.error(`Oops! Signing in with ${provider} didn't work. Please try again.`);
       console.error('OAuth error:', error);
     } finally {
       setLoading(false);
@@ -76,7 +68,7 @@ export function AuthForm() {
       <div className="space-y-4">
         <Button
           variant="outline"
-          className="w-full h-12 bg-white hover:bg-gray-50 dark:bg-slate-800 dark:hover:bg-slate-700"
+          className="w-full h-12 bg-white/80 backdrop-blur-sm hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700/80 border-2 border-gray-200 dark:border-gray-700"
           onClick={() => handleOAuthLogin("google")}
           disabled={loading}
         >
@@ -86,7 +78,7 @@ export function AuthForm() {
         
         <Button
           variant="outline"
-          className="w-full h-12 bg-white hover:bg-gray-50 dark:bg-slate-800 dark:hover:bg-slate-700"
+          className="w-full h-12 bg-white/80 backdrop-blur-sm hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700/80 border-2 border-gray-200 dark:border-gray-700"
           onClick={() => handleOAuthLogin("microsoft")}
           disabled={loading}
         >
@@ -100,22 +92,22 @@ export function AuthForm() {
           <Separator className="w-full" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+          <span className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm px-2 text-gray-500 dark:text-gray-400">Or continue with</span>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">Email</Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <Input
               id="email"
               type="email"
               placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="pl-10 h-12"
+              className="pl-10 h-12 bg-white/80 backdrop-blur-sm border-2 border-gray-200 dark:bg-slate-800/80 dark:border-gray-700 focus:border-purple-500 dark:focus:border-purple-400"
               autoComplete="email"
               required
             />
@@ -123,16 +115,16 @@ export function AuthForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password" className="text-gray-700 dark:text-gray-300">Password</Label>
           <div className="relative">
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
-              placeholder={isLogin ? "Enter your password" : "Create a password"}
+              placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="pr-10 h-12"
-              autoComplete={isLogin ? "current-password" : "new-password"}
+              className="pr-10 h-12 bg-white/80 backdrop-blur-sm border-2 border-gray-200 dark:bg-slate-800/80 dark:border-gray-700 focus:border-purple-500 dark:focus:border-purple-400"
+              autoComplete="current-password"
               required
             />
             <Button
@@ -149,26 +141,43 @@ export function AuthForm() {
 
         <Button
           type="submit"
-          className="w-full h-12 bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white"
+          variant="gradient"
+          className="w-full h-12"
           disabled={loading}
         >
-          {loading ? "Starting your trial..." : isLogin ? "Sign In" : "Start Free Trial"}
+          {loading ? "Signing in..." : "Sign In"}
         </Button>
       </form>
 
-      <div className="text-center text-sm">
-        <button
-          type="button"
-          onClick={() => setIsLogin(!isLogin)}
-          className="text-blue-600 hover:text-blue-500 font-medium"
-        >
-          {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-        </button>
+      {/* Signup Section */}
+      <div className="space-y-4">
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <Separator className="w-full" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm px-2 text-gray-500 dark:text-gray-400">New to FlowPilot?</span>
+          </div>
+        </div>
+
+        <Link href="/signup">
+          <Button
+            variant="outline"
+            className="w-full h-12 bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 dark:from-purple-900/20 dark:to-blue-900/20 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 border-2 border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300 hover:text-purple-800 dark:hover:text-purple-200"
+          >
+            Create your account
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </Link>
+
+        <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+          Start your 7-day free trial • No credit card required
+        </p>
       </div>
 
-      <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
+      <Card className="border-purple-200 bg-purple-50/80 backdrop-blur-sm dark:bg-purple-900/20 dark:border-purple-800">
         <CardContent className="p-4">
-          <p className="text-sm text-blue-800 dark:text-blue-200 text-center">
+          <p className="text-sm text-purple-800 dark:text-purple-200 text-center">
             <strong>7-day free trial</strong> • No credit card required • Cancel anytime
           </p>
         </CardContent>

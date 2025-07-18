@@ -1,208 +1,437 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Mic, Brain, Calendar, CheckCircle, BarChart3, Zap } from "lucide-react";
+import { Calendar, Clock, CheckCircle, ArrowRight, TrendingUp, Zap, X, AlertCircle, Star, Target, Sparkles, Play } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
-const workflowSteps = [
-  {
-    icon: Mic,
-    title: "Voice Input",
-    description: "Speak naturally or type your tasks",
-    detail: "Just say 'Prepare presentation for Friday at 10am' and FlowPilot understands",
-    color: "from-blue-500 to-blue-600",
-    delay: 0.1
-  },
-  {
-    icon: Brain,
-    title: "AI Processing",
-    description: "GPT-4 analyzes and structures your tasks",
-    detail: "Automatically extracts time, priority, duration, and task type",
-    color: "from-purple-500 to-purple-600",
-    delay: 0.2
-  },
-  {
-    icon: Calendar,
-    title: "Smart Scheduling",
-    description: "Optimal time slots based on your patterns",
-    detail: "Considers your energy levels, meeting conflicts, and work preferences",
-    color: "from-teal-500 to-teal-600",
-    delay: 0.3
-  },
-  {
-    icon: CheckCircle,
-    title: "Execute & Track",
-    description: "Stay focused with intelligent reminders",
-    detail: "Real-time progress tracking with contextual break suggestions",
-    color: "from-green-500 to-green-600",
-    delay: 0.4
-  },
-  {
-    icon: BarChart3,
-    title: "Learn & Improve",
-    description: "Continuous optimization of your workflow",
-    detail: "AI learns your patterns to suggest better scheduling over time",
-    color: "from-orange-500 to-orange-600",
-    delay: 0.5
-  }
-];
-
-export function Workflow() {
+export default function Workflow() {
   return (
-    <section className="px-4 sm:px-6 lg:px-8 py-20 bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
-      <div className="max-w-6xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16"
-        >
-          <Badge variant="secondary" className="mb-6 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 border-blue-200 dark:border-blue-800">
-            <Zap className="w-4 h-4 mr-2" />
-            How It Works
-          </Badge>
-          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-slate-100 mb-4">
-            From Chaos to Clarity in{" "}
-            <span className="bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
-              5 Simple Steps
+    <section id="workflow" className="py-12 sm:py-16 lg:py-20 bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 dark:from-slate-900 dark:via-purple-950/30 dark:to-blue-950/20 relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-10 right-10 w-20 h-20 sm:w-40 sm:h-40 bg-purple-200/15 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-20 left-10 w-16 h-16 sm:w-32 sm:h-32 bg-blue-200/15 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 sm:w-60 sm:h-60 bg-gradient-to-r from-purple-200/10 to-blue-200/10 rounded-full blur-3xl"></div>
+      </div>
+
+      <div className="container mx-auto px-4 sm:px-6 relative z-10">
+        {/* Section Header */}
+        <div className="text-center mb-12 sm:mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 px-3 sm:px-4 py-2 rounded-full mb-4 sm:mb-6"
+          >
+            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400" />
+            <span className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300">How It Works</span>
+          </motion.div>
+          
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6"
+          >
+            From Chaos to{" "}
+            <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              Clarity
             </span>
-          </h2>
-          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            See how FlowPilot transforms scattered thoughts into organized, actionable plans
-          </p>
-        </motion.div>
-
-        <div className="relative">
-          {/* Connection Lines */}
-          <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-200 via-purple-200 via-teal-200 via-green-200 to-orange-200 dark:from-blue-800 dark:via-purple-800 dark:via-teal-800 dark:via-green-800 dark:to-orange-800 transform -translate-y-1/2 z-0"></div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 relative z-10">
-            {workflowSteps.map((step, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: step.delay }}
-                whileHover={{ y: -8, transition: { duration: 0.2 } }}
-                className="relative"
-              >
-                <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm hover:shadow-xl transition-all duration-300 h-full">
-                  <CardContent className="p-6 text-center">
-                    {/* Step Number */}
-                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                      <div className="w-8 h-8 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-full flex items-center justify-center text-sm font-bold text-slate-600 dark:text-slate-400">
-                        {index + 1}
-                      </div>
-                    </div>
-
-                    {/* Icon */}
-                    <motion.div
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      transition={{ duration: 0.2 }}
-                      className={`w-16 h-16 mx-auto mb-4 bg-gradient-to-br ${step.color} rounded-2xl flex items-center justify-center shadow-lg`}
-                    >
-                      <step.icon className="w-8 h-8 text-white" />
-                    </motion.div>
-
-                    {/* Content */}
-                    <h3 className="font-semibold text-lg text-slate-900 dark:text-slate-100 mb-2">
-                      {step.title}
-                    </h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
-                      {step.description}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 leading-relaxed">
-                      {step.detail}
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+          </motion.h2>
+          
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="text-base sm:text-lg lg:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto px-4"
+          >
+            See how FlowPilot transforms your scattered productivity into focused, AI-powered success
+          </motion.p>
         </div>
 
-        {/* Demo Preview */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="mt-20"
-        >
-          <Card className="border-0 shadow-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm overflow-hidden">
-            <CardContent className="p-8">
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-                  See It In Action
-                </h3>
-                <p className="text-slate-600 dark:text-slate-400">
-                  Watch how a simple voice command becomes a perfectly scheduled task
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
-                {/* Input */}
+        {/* Before, Magic, and After Comparison */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 items-center">
+          {/* Before State */}
+          <motion.div
+            initial={{ opacity: 0, x: -100 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
+            className="relative order-1 lg:order-1"
+          >
+            {/* Caveat font text on top */}
+            <div className="text-center mb-3 sm:mb-4">
+              <span className="font-caveat text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400">
+                Chaos
+              </span>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 shadow-lg border border-gray-200 dark:border-gray-700 relative overflow-hidden">
+              <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6 text-center">Before FlowPilot</h3>
+              
+              <div className="relative h-48 sm:h-56 lg:h-64">
+                {/* Rotated scattered chips */}
                 <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: 0.8 }}
-                  className="text-center"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.8, delay: 0.3 }}
+                  className="absolute top-2 sm:top-4 left-2 sm:left-4 transform rotate-12"
                 >
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-6 mb-4">
-                    <Mic className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4 shadow-sm">
-                      <p className="text-sm text-slate-700 dark:text-slate-300 italic">
-                        &ldquo;Prepare presentation slides for the board meeting tomorrow at 2 PM&rdquo;
-                      </p>
+                  <div className="bg-red-100 dark:bg-red-900/30 rounded-lg p-2 sm:p-3 border-2 border-red-300 dark:border-red-600 shadow-md">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <X className="w-3 h-3 sm:w-4 sm:h-4 text-red-500 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-red-700 dark:text-red-300 font-medium">
+                        Forgotten tasks
+                      </span>
                     </div>
                   </div>
-                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Voice Input</p>
                 </motion.div>
 
-                {/* Arrow */}
-                <div className="hidden lg:flex justify-center">
-                  <motion.div
-                    animate={{ x: [0, 10, 0] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="text-slate-400"
-                  >
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.8, delay: 0.5 }}
+                  className="absolute top-12 sm:top-16 right-3 sm:right-6 transform -rotate-6"
+                >
+                  <div className="bg-orange-100 dark:bg-orange-900/30 rounded-lg p-2 sm:p-3 border-2 border-orange-300 dark:border-orange-600 shadow-md">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-orange-700 dark:text-orange-300 font-medium">
+                        Robotic reminders
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.8, delay: 0.7 }}
+                  className="absolute bottom-4 sm:bottom-8 left-4 sm:left-8 transform rotate-8"
+                >
+                  <div className="bg-yellow-100 dark:bg-yellow-900/30 rounded-lg p-2 sm:p-3 border-2 border-yellow-300 dark:border-yellow-600 shadow-md">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <X className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-600 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-yellow-700 dark:text-yellow-300 font-medium">
+                        Scattered tools
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.8, delay: 0.9 }}
+                  className="absolute bottom-2 sm:bottom-4 right-2 sm:right-4 transform -rotate-12"
+                >
+                  <div className="bg-pink-100 dark:bg-pink-900/30 rounded-lg p-2 sm:p-3 border-2 border-pink-300 dark:border-pink-600 shadow-md">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <X className="w-3 h-3 sm:w-4 sm:h-4 text-pink-500 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-pink-700 dark:text-pink-300 font-medium">
+                        Zero focus
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.8, delay: 1.1 }}
+                  className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-3"
+                >
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-2 sm:p-3 border-2 border-gray-300 dark:border-gray-600 shadow-md">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <X className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium">
+                        Manual planning
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Magic Happens Here Section - Enhanced */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.0, delay: 0.6 }}
+            className="flex flex-col items-center justify-center order-2 lg:order-2 my-6 lg:my-0"
+          >
+            {/* Enhanced arrow with animation */}
+            <div className="bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-full p-4 sm:p-6 shadow-lg border-2 border-purple-200 dark:border-purple-700 relative overflow-hidden">
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.1, 1],
+                  rotate: [0, 5, -5, 0]
+                }}
+                transition={{ 
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                <svg width="60" height="30" viewBox="0 0 80 40" className="transform sm:w-20 sm:h-10">
+                  <path
+                    d="M10 20 Q25 10 40 20 Q55 30 70 20 L70 20 L60 10 M70 20 L60 30"
+                    stroke="url(#arrowGradient)"
+                    strokeWidth="4"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <defs>
+                    <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#8b5cf6" />
+                      <stop offset="100%" stopColor="#3b82f6" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </motion.div>
+              
+              {/* Floating sparkles around the arrow */}
+              <motion.div
+                animate={{ 
+                  rotate: 360,
+                  scale: [1, 1.2, 1]
+                }}
+                transition={{ 
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+                className="absolute -top-1 sm:-top-2 -right-1 sm:-right-2"
+              >
+                <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
+              </motion.div>
+              
+              <motion.div
+                animate={{ 
+                  rotate: -360,
+                  scale: [1, 1.3, 1]
+                }}
+                transition={{ 
+                  duration: 5,
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+                className="absolute -bottom-1 sm:-bottom-2 -left-1 sm:-left-2"
+              >
+                <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400" />
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {/* After State */}
+          <motion.div
+            initial={{ opacity: 0, x: 100 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
+            className="relative order-3 lg:order-3"
+          >
+            {/* Caveat font text on top */}
+            <div className="text-center mb-3 sm:mb-4">
+              <span className="font-caveat text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
+                Clarity
+              </span>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 shadow-lg border border-gray-200 dark:border-gray-700 relative overflow-hidden">
+              <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6 text-center">With FlowPilot</h3>
+              
+              <div className="relative h-48 sm:h-56 lg:h-64">
+                {/* Rotated organized chips */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.8, delay: 0.3 }}
+                  className="absolute top-2 sm:top-4 left-2 sm:left-4 transform rotate-3"
+                >
+                  <div className="bg-green-100 dark:bg-green-900/30 rounded-lg p-2 sm:p-3 border-2 border-green-300 dark:border-green-600 shadow-md">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-green-700 dark:text-green-300 font-medium">
+                        Smart reminders
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.8, delay: 0.5 }}
+                  className="absolute top-12 sm:top-16 right-3 sm:right-6 transform -rotate-2"
+                >
+                  <div className="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-2 sm:p-3 border-2 border-blue-300 dark:border-blue-600 shadow-md">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <Target className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-blue-700 dark:text-blue-300 font-medium">
+                        Laser focus
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.8, delay: 0.7 }}
+                  className="absolute bottom-4 sm:bottom-8 left-4 sm:left-8 transform rotate-1"
+                >
+                  <div className="bg-purple-100 dark:bg-purple-900/30 rounded-lg p-2 sm:p-3 border-2 border-purple-300 dark:border-purple-600 shadow-md">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-purple-500 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-purple-700 dark:text-purple-300 font-medium">
+                        Unified tools
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.8, delay: 0.9 }}
+                  className="absolute bottom-2 sm:bottom-4 right-2 sm:right-4 transform -rotate-1"
+                >
+                  <div className="bg-emerald-100 dark:bg-emerald-900/30 rounded-lg p-2 sm:p-3 border-2 border-emerald-300 dark:border-emerald-600 shadow-md">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-500 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-emerald-700 dark:text-emerald-300 font-medium">
+                        AI planning
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.8, delay: 1.1 }}
+                  className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-2"
+                >
+                  <div className="bg-indigo-100 dark:bg-indigo-900/30 rounded-lg p-2 sm:p-3 border-2 border-indigo-300 dark:border-indigo-600 shadow-md">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <Star className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-500 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-indigo-700 dark:text-indigo-300 font-medium">
+                        Peak performance
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Success Story Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-12 sm:mt-16">
+          {[
+            {
+              title: "Time Saver",
+              description: "Save 2+ hours daily",
+              icon: Clock,
+              color: "blue",
+              gradient: "from-blue-500 to-blue-600",
+              bgGradient: "from-blue-50 to-blue-100",
+              darkBgGradient: "from-blue-900/20 to-blue-800/20"
+            },
+            {
+              title: "Pure Focus",
+              description: "Zero distractions",
+              icon: Target,
+              color: "purple",
+              gradient: "from-purple-500 to-purple-600",
+              bgGradient: "from-purple-50 to-purple-100",
+              darkBgGradient: "from-purple-900/20 to-purple-800/20"
+            },
+            {
+              title: "Unstoppable",
+              description: "Achieve more daily",
+              icon: TrendingUp,
+              color: "green",
+              gradient: "from-green-500 to-green-600",
+              bgGradient: "from-green-50 to-green-100",
+              darkBgGradient: "from-green-900/20 to-green-800/20"
+            }
+          ].map((card, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 + index * 0.1 }}
+              whileHover={{ 
+                scale: 1.05,
+                rotateY: 5
+              }}
+              className={`bg-gradient-to-br ${card.bgGradient} dark:${card.darkBgGradient} rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-${card.color}-200/50 dark:border-${card.color}-700/30 shadow-lg relative overflow-hidden`}
+            >
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r ${card.gradient} rounded-xl flex items-center justify-center shadow-md`}>
+                  <card.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-
-                {/* Output */}
                 <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: 1.0 }}
-                  className="text-center"
+                  animate={{ 
+                    rotate: [0, 10, -10, 0]
+                  }}
+                  transition={{ 
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
                 >
-                  <div className="bg-teal-50 dark:bg-teal-900/20 rounded-2xl p-6 mb-4">
-                    <Calendar className="w-12 h-12 text-teal-600 mx-auto mb-4" />
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4 shadow-sm text-left">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium text-slate-900 dark:text-slate-100">Prepare presentation slides</h4>
-                        <Badge className="bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">High</Badge>
-                      </div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
-                        <p>📅 Tomorrow, 2:00 PM</p>
-                        <p>⏱️ 90 minutes</p>
-                        <p>🎨 Creative work</p>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Structured Task</p>
+                  <Sparkles className={`w-4 h-4 sm:w-5 sm:h-5 text-${card.color}-400`} />
                 </motion.div>
               </div>
-            </CardContent>
-          </Card>
+              
+              <h4 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-2">
+                {card.title}
+              </h4>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
+                {card.description}
+              </p>
+              
+              {/* Handwritten annotation */}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, delay: 0.8 + index * 0.1 }}
+                className="absolute top-2 right-2"
+              >
+                <div className={`bg-gradient-to-r from-${card.color}-100 to-${card.color}-200 dark:from-${card.color}-900/40 dark:to-${card.color}-800/40 border border-${card.color}-300 dark:border-${card.color}-600 rounded-lg px-2 sm:px-3 py-1 shadow-md transform rotate-3`}>
+                  <p className={`text-xs sm:text-sm font-caveat text-${card.color}-800 dark:text-${card.color}-200 font-semibold`}>
+                    &quot;{card.title}&quot;
+                  </p>
+                </div>
+              </motion.div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* CTA Section */}
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.0, delay: 0.5 }}
+          className="text-center mt-12 sm:mt-16"
+        >
+          <Link href="/auth">
+            <Button 
+              size="lg"
+              variant="gradient" 
+              className="group relative overflow-hidden"
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                Start Your Transformation
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            </Button>
+          </Link>
         </motion.div>
       </div>
     </section>

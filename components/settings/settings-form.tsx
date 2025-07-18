@@ -87,9 +87,9 @@ export function SettingsForm({ profile, loading, saving, trialDaysLeft, updatePr
 
     const result = await updateProfile(updates);
     if (result) {
-      toast.success("Your settings have been saved!");
+      toast.success('Your settings have been saved!');
     } else {
-      toast.error("We couldn't save your settings. Please try again soon.");
+      toast.error('We couldn\'t save your settings. Please try again soon.');
     }
     
     isSavingRef.current = false;
@@ -111,11 +111,11 @@ export function SettingsForm({ profile, loading, saving, trialDaysLeft, updatePr
   if (loading) {
     return (
       <div className="space-y-6">
-        <Card>
+        <Card className="bg-white/80 backdrop-blur-md dark:bg-slate-800/80 border-0 shadow-xl">
           <CardContent className="flex items-center justify-center py-12">
             <div className="flex items-center space-x-2">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <span>Loading profile...</span>
+              <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+              <span className="text-gray-600 dark:text-gray-300">Loading profile...</span>
             </div>
           </CardContent>
         </Card>
@@ -126,10 +126,10 @@ export function SettingsForm({ profile, loading, saving, trialDaysLeft, updatePr
   if (profileError) {
     return (
       <div className="space-y-6">
-        <Card>
+        <Card className="bg-white/80 backdrop-blur-md dark:bg-slate-800/80 border-0 shadow-xl">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <span className="text-red-500 mb-4">{profileError}</span>
-            <Button onClick={retryProfileFetch}>Try Again</Button>
+            <Button onClick={retryProfileFetch} variant="gradient">Try Again</Button>
           </CardContent>
         </Card>
       </div>
@@ -139,13 +139,13 @@ export function SettingsForm({ profile, loading, saving, trialDaysLeft, updatePr
   return (
     <div className="space-y-6">
       {/* Profile Settings */}
-      <Card>
+      <Card className="bg-white/80 backdrop-blur-md dark:bg-slate-800/80 border-0 shadow-xl">
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <User className="w-5 h-5 mr-2" />
+          <CardTitle className="flex items-center text-gray-900 dark:text-white">
+            <User className="w-5 h-5 mr-2 text-purple-600" />
             Profile
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-gray-600 dark:text-gray-300">
             Manage your account information and preferences
           </CardDescription>
         </CardHeader>
@@ -153,13 +153,15 @@ export function SettingsForm({ profile, loading, saving, trialDaysLeft, updatePr
           <div className="flex items-center space-x-4">
             <Avatar className="w-20 h-20">
               <AvatarImage src={getAvatarUrl()} alt={formData.name || oauthInfo?.name || user?.email?.split('@')[0] || 'User avatar'} />
-              <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+              <AvatarFallback className="bg-gradient-to-r from-purple-500 to-blue-500 text-white">
+                {getAvatarFallback()}
+              </AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-1">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
                 {formData.name || oauthInfo?.name || 'User'}
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {formData.email || oauthInfo?.email || 'No email'}
               </p>
             </div>
@@ -167,36 +169,38 @@ export function SettingsForm({ profile, loading, saving, trialDaysLeft, updatePr
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">Name</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Enter your name"
+                className="bg-white/80 backdrop-blur-sm border-2 border-gray-200 dark:bg-slate-800/80 dark:border-gray-700 focus:border-purple-500 dark:focus:border-purple-400"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="Enter your email"
+                className="bg-white/80 backdrop-blur-sm border-2 border-gray-200 dark:bg-slate-800/80 dark:border-gray-700 focus:border-purple-500 dark:focus:border-purple-400"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="timezone">Timezone</Label>
+            <Label htmlFor="timezone" className="text-gray-700 dark:text-gray-300">Timezone</Label>
             <Select
               value={formData.timezone}
               onValueChange={(value) => setFormData({ ...formData, timezone: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="bg-white/80 backdrop-blur-sm border-2 border-gray-200 dark:bg-slate-800/80 dark:border-gray-700 focus:border-purple-500 dark:focus:border-purple-400">
                 <SelectValue placeholder="Select your timezone" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-gray-200 dark:border-slate-700">
                 <SelectItem value="UTC">UTC (Coordinated Universal Time)</SelectItem>
                 
                 {/* North America */}
@@ -248,74 +252,67 @@ export function SettingsForm({ profile, loading, saving, trialDaysLeft, updatePr
                 <SelectItem value="America/Argentina/Buenos_Aires">Buenos Aires (ART)</SelectItem>
                 <SelectItem value="America/Santiago">Santiago (CLT/CLST)</SelectItem>
                 <SelectItem value="America/Lima">Lima (PET)</SelectItem>
-                <SelectItem value="America/Bogota">Bogotá (COT)</SelectItem>
-                <SelectItem value="America/Mexico_City">Mexico City (CST/CDT)</SelectItem>
-                
-                {/* Africa */}
-                <SelectItem value="Africa/Cairo">Cairo (EET)</SelectItem>
-                <SelectItem value="Africa/Johannesburg">Johannesburg (SAST)</SelectItem>
-                <SelectItem value="Africa/Lagos">Lagos (WAT)</SelectItem>
-                <SelectItem value="Africa/Nairobi">Nairobi (EAT)</SelectItem>
-                <SelectItem value="Africa/Casablanca">Casablanca (WET)</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Work Preferences */}
-      <Card>
+      {/* Work Hours Settings */}
+      <Card className="bg-white/80 backdrop-blur-md dark:bg-slate-800/80 border-0 shadow-xl">
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Clock className="w-5 h-5 mr-2" />
-            Work Preferences
+          <CardTitle className="flex items-center text-gray-900 dark:text-white">
+            <Clock className="w-5 h-5 mr-2 text-purple-600" />
+            Work Hours
           </CardTitle>
-          <CardDescription>
-            Set your preferred work hours and style
+          <CardDescription className="text-gray-600 dark:text-gray-300">
+            Set your preferred work schedule for better productivity predictions
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="startTime">Work Start Time</Label>
+              <Label htmlFor="startTime" className="text-gray-700 dark:text-gray-300">Start Time</Label>
               <Input
                 id="startTime"
                 type="time"
                 value={formData.workHours.start}
-                onChange={(e) => setFormData({
-                  ...formData,
+                onChange={(e) => setFormData({ 
+                  ...formData, 
                   workHours: { ...formData.workHours, start: e.target.value }
                 })}
+                className="bg-white/80 backdrop-blur-sm border-2 border-gray-200 dark:bg-slate-800/80 dark:border-gray-700 focus:border-purple-500 dark:focus:border-purple-400"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="endTime">Work End Time</Label>
+              <Label htmlFor="endTime" className="text-gray-700 dark:text-gray-300">End Time</Label>
               <Input
                 id="endTime"
                 type="time"
                 value={formData.workHours.end}
-                onChange={(e) => setFormData({
-                  ...formData,
+                onChange={(e) => setFormData({ 
+                  ...formData, 
                   workHours: { ...formData.workHours, end: e.target.value }
                 })}
+                className="bg-white/80 backdrop-blur-sm border-2 border-gray-200 dark:bg-slate-800/80 dark:border-gray-700 focus:border-purple-500 dark:focus:border-purple-400"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Work Days</Label>
+            <Label className="text-gray-700 dark:text-gray-300">Work Days</Label>
             <div className="flex flex-wrap gap-2">
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
+              {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, index) => (
                 <Button
                   key={day}
-                  variant={formData.workHours.days.includes(index + 1) ? "default" : "outline"}
+                  variant={formData.workHours.days.includes(index + 1) ? "gradient" : "outline"}
                   size="sm"
                   onClick={() => {
                     const days = formData.workHours.days.includes(index + 1)
-                      ? formData.workHours.days.filter(d => d !== index + 1)
+                      ? formData.workHours.days.filter((d: any) => d !== index + 1)
                       : [...formData.workHours.days, index + 1].sort();
-                    setFormData({
-                      ...formData,
+                    setFormData({ 
+                      ...formData, 
                       workHours: { ...formData.workHours, days }
                     });
                   }}
@@ -328,69 +325,22 @@ export function SettingsForm({ profile, loading, saving, trialDaysLeft, updatePr
         </CardContent>
       </Card>
 
-      {/* Notifications */}
-      <Card>
+      {/* Preferences */}
+      <Card className="bg-white/80 backdrop-blur-md dark:bg-slate-800/80 border-0 shadow-xl">
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Bell className="w-5 h-5 mr-2" />
-            Notifications
+          <CardTitle className="flex items-center text-gray-900 dark:text-white">
+            <Palette className="w-5 h-5 mr-2 text-purple-600" />
+            Preferences
           </CardTitle>
-          <CardDescription>
-            Configure how you want to be notified
+          <CardDescription className="text-gray-600 dark:text-gray-300">
+            Customize your FlowPilot experience
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Push Notifications</p>
-              <p className="text-sm text-muted-foreground">
-                Get notified about task reminders and updates
-              </p>
-            </div>
-            <Switch
-              checked={formData.notifications}
-              onCheckedChange={(checked) => setFormData({ ...formData, notifications: checked })}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Email Summaries</p>
-              <p className="text-sm text-muted-foreground">
-                Receive daily productivity summaries
-              </p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Break Reminders</p>
-              <p className="text-sm text-muted-foreground">
-                Get reminded to take breaks during focus sessions
-              </p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Appearance */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Palette className="w-5 h-5 mr-2" />
-            Appearance
-          </CardTitle>
-          <CardDescription>
-            Customize the look and feel of FlowPilot
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Dark Mode</p>
-              <p className="text-sm text-muted-foreground">
+            <div className="space-y-0.5">
+              <Label className="text-gray-700 dark:text-gray-300">Dark Mode</Label>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Switch between light and dark themes
               </p>
             </div>
@@ -399,56 +349,32 @@ export function SettingsForm({ profile, loading, saving, trialDaysLeft, updatePr
               onCheckedChange={handleThemeChange}
             />
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Billing */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <CreditCard className="w-5 h-5 mr-2" />
-            Billing
-          </CardTitle>
-          <CardDescription>
-            Manage your subscription and billing information
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Current Plan</p>
-              <p className="text-sm text-muted-foreground">
-                {profile?.is_pro_user ? 'Pro Plan' : `Trial - ${trialDaysLeft} days remaining`}
+            <div className="space-y-0.5">
+              <Label className="text-gray-700 dark:text-gray-300">Notifications</Label>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Receive productivity insights and reminders
               </p>
             </div>
-            {!profile?.is_pro_user && (
-              <Button variant="outline">
-                Upgrade Now
-              </Button>
-            )}
-          </div>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <Button variant="outline" className="w-full">
-              Manage Subscription
-            </Button>
-            <Button variant="outline" className="w-full">
-              Download Invoice
-            </Button>
+            <Switch
+              checked={formData.notifications}
+              onCheckedChange={(checked) => setFormData({ ...formData, notifications: checked })}
+            />
           </div>
         </CardContent>
       </Card>
 
+      {/* Save Button */}
       <div className="flex justify-end">
         <Button 
           onClick={handleSave} 
-          disabled={saving}
-          className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white"
+          disabled={saving} 
+          variant="gradient"
+          className="px-8"
         >
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {saving ? 'Saving...' : 'Save Changes'}
+          {saving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
     </div>

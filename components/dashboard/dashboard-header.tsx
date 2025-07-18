@@ -36,15 +36,15 @@ export function DashboardHeader({ profile, trialDaysLeft, oauthInfo }: any) {
   };
 
   return (
-    <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+    <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-gray-100 dark:border-slate-800 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link href="/dashboard" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-teal-600 rounded-lg flex items-center justify-center">
+            <Link href="/dashboard" className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
                 <Zap className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
+              <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
                 FlowPilot
               </span>
             </Link>
@@ -52,14 +52,14 @@ export function DashboardHeader({ profile, trialDaysLeft, oauthInfo }: any) {
 
           <div className="flex items-center space-x-4">
             {trialDaysLeft > 0 && !profile?.is_pro_user && (
-              <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800">
+              <Badge variant="outline" className="bg-yellow-50/80 backdrop-blur-sm text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800">
                 {trialDaysLeft} days left in trial
               </Badge>
             )}
             
             {!profile?.is_pro_user && (
               <Link href="/upgrade">
-                <Button size="sm" className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white">
+                <Button size="sm" variant="gradient" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white">
                   <Crown className="w-4 h-4 mr-2" />
                   Upgrade
                 </Button>
@@ -72,37 +72,37 @@ export function DashboardHeader({ profile, trialDaysLeft, oauthInfo }: any) {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800">
                   <Avatar className="h-8 w-8">
                     <AvatarImage 
                       src={profile?.avatar_url}
                       alt={profile?.name || user?.email?.split('@')[0] || 'User avatar'}
                     />
-                    <AvatarFallback>
+                    <AvatarFallback className="bg-gradient-to-r from-purple-500 to-blue-500 text-white">
                       {getAvatarFallback()}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end">
+              <DropdownMenuContent className="w-56 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-gray-200 dark:border-slate-700" align="end">
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">
+                    <p className="text-sm font-medium leading-none text-gray-900 dark:text-white">
                       {getUserDisplayName()}
                     </p>
-                    <p className="text-xs leading-none text-muted-foreground">
+                    <p className="text-xs leading-none text-gray-500 dark:text-gray-400">
                       {getUserEmail()}
                     </p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem asChild className="hover:bg-gray-50 dark:hover:bg-slate-700">
                   <Link href="/settings">
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem asChild className="hover:bg-gray-50 dark:hover:bg-slate-700">
                   <Link href="/progress">
                     <BarChart3 className="mr-2 h-4 w-4" />
                     Progress
@@ -114,12 +114,13 @@ export function DashboardHeader({ profile, trialDaysLeft, oauthInfo }: any) {
                     try {
                       await signOut();
                       router.push('/');
-                      toast.success('You’ve been signed out. See you next time!');
+                      toast.success('You\'ve been signed out. See you next time!');
                     } catch (error) {
-                      toast.error('We couldn’t sign you out. Please try again.');
+                      toast.error('We couldn\'t sign you out. Please try again.');
                       console.error('Sign out error:', error);
                     }
                   }}
+                  className="hover:bg-gray-50 dark:hover:bg-slate-700"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out

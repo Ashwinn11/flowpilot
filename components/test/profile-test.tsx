@@ -34,7 +34,7 @@ export function ProfileTest({ profile, loading, saving, trialDaysLeft, updatePro
     });
 
     if (result) {
-      toast.success("Test update complete! Your changes are live.");
+      toast.success('Test update complete! Your changes are live.');
       setTestName("");
     } else {
       toast.error('Sorry, we couldn’t update your profile. Please try again.');
@@ -51,9 +51,9 @@ export function ProfileTest({ profile, loading, saving, trialDaysLeft, updatePro
     });
 
     if (result) {
-      toast.success("Profile reset! Everything’s back to default.");
+      toast.success('Profile reset! Everything\'s back to default.');
     } else {
-      toast.error('We couldn’t reset your profile. Please try again.');
+      toast.error('We couldn\'t reset your profile. Please try again.');
     }
   };
 
