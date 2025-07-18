@@ -127,6 +127,8 @@ function OnboardingWorkPreferencesModal({ open, onSave, initialWorkHours, saving
 export default function Dashboard() {
   const { profile, updateProfile, loading, saving, refreshProfile, trialDaysLeft, getOAuthInfo } = useProfile();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
+  const [welcomeMessageShown, setWelcomeMessageShown] = useState(false);
 
   useEffect(() => {
     if (!loading && profile) {
@@ -135,8 +137,44 @@ export default function Dashboard() {
       } else {
         setShowOnboarding(false);
       }
+      
+      // Check if we should show welcome message for newly verified users
+      // Only check once per session to prevent spam
+      if (typeof window !== 'undefined' && !welcomeMessageShown) {
+        const welcomeTimestamp = sessionStorage.getItem('showWelcomeMessage');
+        const isNewUser = sessionStorage.getItem('isNewUser');
+        console.log('Dashboard: Checking welcome message flag:', welcomeTimestamp, 'isNewUser:', isNewUser);
+        
+        if (welcomeTimestamp) {
+          const timestamp = parseInt(welcomeTimestamp);
+          const now = Date.now();
+          const timeDiff = now - timestamp;
+          
+          console.log('Dashboard: Welcome message time diff:', timeDiff, 'ms');
+          
+          // Only show welcome message if the flag was set within the last 5 seconds (very restrictive)
+          if (timeDiff < 5 * 1000) {
+            console.log('Dashboard: Showing welcome message');
+            setShowWelcomeMessage(true);
+            setWelcomeMessageShown(true); // Prevent showing again
+            sessionStorage.removeItem('showWelcomeMessage'); // Clear the flag immediately
+            sessionStorage.removeItem('isNewUser'); // Clear the new user flag
+            
+            if (isNewUser === 'true') {
+              toast.success('Welcome to FlowPilot! Your account has been successfully verified.');
+            } else {
+              toast.success('Welcome back! You\'ve signed in successfully.');
+            }
+          } else {
+            // Clear stale flags
+            console.log('Dashboard: Clearing stale welcome message flag');
+            sessionStorage.removeItem('showWelcomeMessage');
+            sessionStorage.removeItem('isNewUser');
+          }
+        }
+      }
     }
-  }, [profile, loading]);
+  }, [profile, loading, welcomeMessageShown]);
 
   const handleSaveWorkPrefs = async (workHours: any) => {
     const result = await updateProfile({ work_hours: workHours });

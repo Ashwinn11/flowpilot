@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { AuthAPI } from './auth-api';
-import { toast } from 'sonner';
+import { logger } from './logger';
 
 interface SessionHealth {
   isValid: boolean;
@@ -25,6 +25,7 @@ class SessionMonitorService {
   };
   private lastHealthCheck: number = 0;
   private sessionWarningShown: boolean = false;
+  private isMonitoring: boolean = false;
 
   static getInstance(): SessionMonitorService {
     if (!SessionMonitorService.instance) {
@@ -37,11 +38,19 @@ class SessionMonitorService {
    * Start monitoring session health
    */
   startMonitoring(): void {
+    if (this.isMonitoring) {
+      logger.debug('Session monitoring already active, skipping start');
+      return;
+    }
+
     this.stopMonitoring(); // Ensure no duplicate intervals
     
     this.healthCheckInterval = setInterval(() => {
       this.performHealthCheck();
     }, this.config.healthCheckInterval);
+
+    this.isMonitoring = true;
+    logger.debug('Session monitoring started');
 
     // Perform initial health check
     this.performHealthCheck();
@@ -56,6 +65,8 @@ class SessionMonitorService {
       this.healthCheckInterval = null;
     }
     this.sessionWarningShown = false;
+    this.isMonitoring = false;
+    logger.debug('Session monitoring stopped');
   }
 
   /**
@@ -85,7 +96,7 @@ class SessionMonitorService {
         refreshedAt: Date.now()
       };
     } catch (error) {
-      console.error('[SessionMonitor] Error checking session health:', error);
+      logger.error('Error checking session health', { error: (error as Error).message }, error as Error);
       return {
         isValid: false,
         expiresAt: null,
@@ -126,7 +137,7 @@ class SessionMonitorService {
         }
       }
     } catch (error) {
-      console.error('[SessionMonitor] Health check failed:', error);
+      logger.error('Health check failed', { error: (error as Error).message }, error as Error);
     }
   }
 
@@ -139,12 +150,12 @@ class SessionMonitorService {
       const result = await AuthAPI.refreshSession();
       
       if (!result) {
-        console.error('[SessionMonitor] Failed to refresh session: No response');
+        logger.error('Failed to refresh session: No response');
         return false;
       }
 
       if (!result.success) {
-        console.error('[SessionMonitor] Failed to refresh session:', result.error);
+        logger.warn('Failed to refresh session', { error: result.error });
         if (result.requiresLogin) {
           // Session is completely invalid, user needs to login again
           return false;
@@ -153,31 +164,30 @@ class SessionMonitorService {
       }
 
       if (result.refreshed) {
-        console.log('[SessionMonitor] Session refreshed successfully');
+        logger.debug('Session refreshed successfully');
         this.sessionWarningShown = false; // Reset warning flag
         return true;
       } else {
         // Session is still valid, no refresh was needed
-        console.log('[SessionMonitor] Session is still valid, no refresh needed');
+        logger.debug('Session is still valid, no refresh needed');
         return true;
       }
     } catch (error) {
-      console.error('[SessionMonitor] Error refreshing session:', error);
+      logger.error('Error refreshing session', { error: (error as Error).message }, error as Error);
       // Fallback to Supabase direct refresh
       try {
         const { data, error: supabaseError } = await supabase.auth.refreshSession();
         
         if (supabaseError || !data.session) {
-          toast.error('Your session could not be refreshed. Please sign in again.');
+          logger.warn('Fallback refresh failed', { error: supabaseError?.message || 'No session data' });
           return false;
         }
 
-        console.log('[SessionMonitor] Fallback refresh successful');
+        logger.debug('Fallback refresh successful');
         this.sessionWarningShown = false;
         return true;
       } catch (fallbackError) {
-        console.error('[SessionMonitor] Fallback refresh failed:', fallbackError);
-        toast.error('Your session could not be refreshed. Please sign in again.');
+        logger.error('Fallback refresh failed', { error: (fallbackError as Error).message }, fallbackError as Error);
         return false;
       }
     }
@@ -188,7 +198,7 @@ class SessionMonitorService {
    */
   private showExpirationWarning(minutesLeft: number): void {
     // Silent operation - only log for debugging
-    console.log(`[SessionMonitor] Session expires in ${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''}, auto-refresh will handle this`);
+    logger.debug('Session expiration warning', { minutesLeft });
     
     // Only show warning if auto-refresh has repeatedly failed
     // This creates a better UX by not showing unnecessary notifications
@@ -198,24 +208,31 @@ class SessionMonitorService {
    * Handle cross-tab session coordination
    */
   setupCrossTabSync(): void {
+    // Remove existing listeners to prevent duplicates
+    window.removeEventListener('storage', this.handleStorageEvent);
+    window.removeEventListener('focus', this.handleFocusEvent);
+
     // Listen for storage events to sync logout across tabs
-    window.addEventListener('storage', (event) => {
-      if (event.key === 'supabase.auth.token') {
-        // If auth token was removed in another tab, refresh current tab
-        if (!event.newValue && event.oldValue) {
-          window.location.reload();
-        }
-      }
-    });
+    window.addEventListener('storage', this.handleStorageEvent);
 
     // Listen for focus events to check session health when tab becomes active
-    window.addEventListener('focus', () => {
-      // Only check if it's been more than 1 minute since last check
-      if (Date.now() - this.lastHealthCheck > 60000) {
-        this.performHealthCheck();
-      }
-    });
+    window.addEventListener('focus', this.handleFocusEvent);
   }
+
+  private handleStorageEvent = (event: StorageEvent) => {
+    if (event.key === 'supabase.auth.token') {
+      // If auth token was removed in another tab, refresh current tab
+      if (!event.newValue && event.oldValue) {
+        window.location.reload();
+      }
+    }
+  };
+
+  private handleFocusEvent = () => {
+    // Disabled focus-based health checks to prevent toast spam
+    // Health checks are now only done via the interval timer
+    logger.debug('Tab focus detected, but health check skipped to prevent spam');
+  };
 
   /**
    * Add security headers for session management

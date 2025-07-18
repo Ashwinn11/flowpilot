@@ -22,10 +22,11 @@ import {
   AlertCircle
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { AuthValidator, AuthValidationError } from "@/lib/auth-validation";
+import { AuthValidator, AuthValidationError, AuthErrorMessages } from "@/lib/auth-validation";
 import Link from "next/link";
+import { AuthAPI } from "@/lib/auth-api";
 
 interface SignupData {
   email: string;
@@ -45,12 +46,16 @@ interface SignupData {
 export function SignupForm() {
   const { user, signInWithGoogle, signInWithMicrosoft, signUpWithEmail } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState<AuthValidationError[]>([]);
   const [passwordStrength, setPasswordStrength] = useState<{score: number; feedback: string[]; isStrong: boolean} | null>(null);
+  const [oauthOnly, setOauthOnly] = useState(false);
+  const [oauthProvider, setOauthProvider] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<SignupData>({
     email: "",
@@ -73,6 +78,14 @@ export function SignupForm() {
     }
   }, [user, router]);
 
+  // Pre-fill email from URL parameters
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    if (emailParam) {
+      setFormData(prev => ({ ...prev, email: emailParam }));
+    }
+  }, [searchParams]);
+
   // Auto-detect timezone
   useEffect(() => {
     try {
@@ -89,33 +102,33 @@ export function SignupForm() {
     switch (step) {
       case 1: // Account details
         if (!formData.email || !formData.password || !formData.confirmPassword || !formData.name) {
-          setValidationErrors([{ field: 'general', message: 'Please fill in all required fields' }]);
+          setValidationErrors([{ field: 'general', message: AuthErrorMessages.EMAIL_REQUIRED, code: 'REQUIRED_FIELDS' }]);
           return false;
         }
         if (formData.password !== formData.confirmPassword) {
-          setValidationErrors([{ field: 'confirmPassword', message: 'Passwords do not match' }]);
+          setValidationErrors([{ field: 'confirmPassword', message: AuthErrorMessages.PASSWORD_MISMATCH, code: 'PASSWORD_MISMATCH' }]);
           return false;
         }
         if (formData.password.length < 8) {
-          setValidationErrors([{ field: 'password', message: 'Password must be at least 8 characters long' }]);
+          setValidationErrors([{ field: 'password', message: AuthErrorMessages.PASSWORD_TOO_SHORT, code: 'PASSWORD_TOO_SHORT' }]);
           return false;
         }
         break;
       
       case 2: // Work preferences
         if (!formData.workHours.start || !formData.workHours.end) {
-          setValidationErrors([{ field: 'workHours', message: 'Please set your work hours' }]);
+          setValidationErrors([{ field: 'workHours', message: AuthErrorMessages.WORK_HOURS_REQUIRED, code: 'WORK_HOURS_REQUIRED' }]);
           return false;
         }
         if (formData.workHours.days.length === 0) {
-          setValidationErrors([{ field: 'workDays', message: 'Please select at least one work day' }]);
+          setValidationErrors([{ field: 'workDays', message: AuthErrorMessages.WORK_DAYS_REQUIRED, code: 'WORK_DAYS_REQUIRED' }]);
           return false;
         }
         break;
       
       case 3: // Terms
         if (!formData.acceptTerms) {
-          setValidationErrors([{ field: 'terms', message: 'You must accept the terms and conditions' }]);
+          setValidationErrors([{ field: 'terms', message: AuthErrorMessages.TERMS_REQUIRED, code: 'TERMS_REQUIRED' }]);
           return false;
         }
         break;
@@ -137,18 +150,36 @@ export function SignupForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateStep(3)) return;
-    
     setLoading(true);
-    
+    setOauthOnly(false);
+    setOauthProvider(null);
+    setErrorMessage(null);
     try {
-      await signUpWithEmail(formData.email, formData.password);
-      toast.success('Your account was created! Please check your email to verify and get started.');
-      
-      // In a real app, you'd also create the user profile here
-      // For now, we'll redirect to dashboard where the profile will be created
-      router.push('/dashboard');
+      const result = await AuthAPI.signup({
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        timezone: formData.timezone,
+        workHours: formData.workHours
+      });
+      if (result?.success) {
+        // Don't show success toast here - user needs to verify email first
+        router.push('/auth/verify-email');
+      } else if (result?.validationErrors) {
+        setValidationErrors(result.validationErrors);
+      } else if (result?.error) {
+        setErrorMessage(result.error);
+        // Show Google sign-in suggestion for common errors
+        if (
+          result.error.toLowerCase().includes('already exists') ||
+          result.error.toLowerCase().includes('already in use')
+        ) {
+          setOauthOnly(true);
+          setOauthProvider('google');
+        }
+      }
     } catch (error: any) {
-      toast.error('Sorry, we couldn\'t create your account. Please try again.');
+      setErrorMessage('Sorry, we couldn\'t create your account. Please try again.');
       console.error('Signup error:', error);
     } finally {
       setLoading(false);
@@ -178,15 +209,17 @@ export function SignupForm() {
 
   const getPasswordStrengthColor = () => {
     if (!passwordStrength) return 'bg-gray-200';
-    if (passwordStrength.score >= 3) return 'bg-green-500';
-    if (passwordStrength.score >= 2) return 'bg-yellow-500';
+    if (passwordStrength.score >= 8) return 'bg-green-500';
+    if (passwordStrength.score >= 6) return 'bg-blue-500';
+    if (passwordStrength.score >= 4) return 'bg-yellow-500';
     return 'bg-red-500';
   };
 
   const getPasswordStrengthText = () => {
     if (!passwordStrength) return '';
-    if (passwordStrength.score >= 3) return 'Strong';
-    if (passwordStrength.score >= 2) return 'Medium';
+    if (passwordStrength.score >= 8) return 'Very Strong';
+    if (passwordStrength.score >= 6) return 'Strong';
+    if (passwordStrength.score >= 4) return 'Medium';
     return 'Weak';
   };
 
@@ -530,6 +563,25 @@ export function SignupForm() {
                 <span>{error.message}</span>
               </div>
             ))}
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
+            {oauthOnly && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full mt-2"
+                onClick={() => signInWithGoogle()}
+              >
+                <span className="flex items-center justify-center">
+                  <GoogleIcon className="w-5 h-5 mr-2" />
+                  Sign in with Google
+                </span>
+              </Button>
+            )}
           </div>
         )}
 

@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { logger } from './logger';
 
 interface SessionResponse {
   valid: boolean;
@@ -59,8 +60,211 @@ interface LogoutResponse {
   timestamp: number;
 }
 
+interface SignupResponse {
+  success: boolean;
+  error?: string;
+  message: string;
+  code?: string;
+  provider?: string;
+  user?: {
+    id: string;
+    email: string;
+    emailVerified: boolean;
+  };
+  validationErrors?: any[];
+}
+
+interface SigninResponse {
+  success: boolean;
+  error?: string;
+  message: string;
+  code?: string;
+  provider?: string;
+  user?: {
+    id: string;
+    email: string;
+    name?: string;
+    avatar?: string;
+    provider?: string;
+    emailVerified: boolean;
+    createdAt: string;
+  };
+  profile?: any;
+  session?: {
+    expiresAt: number;
+    timeUntilExpiry: number;
+    isExpiringSoon: boolean;
+  };
+  requiresEmailVerification?: boolean;
+}
+
+interface ForgotPasswordResponse {
+  success: boolean;
+  error?: string;
+  message: string;
+  code?: string;
+  provider?: string;
+}
+
+interface ResetPasswordResponse {
+  success: boolean;
+  error?: string;
+  message: string;
+}
+
 export class AuthAPI {
-  private static baseUrl = '/api/auth';
+  private static baseUrl = typeof window !== 'undefined' && window.location.port === '3001' 
+    ? 'http://localhost:3001/api/auth' 
+    : '/api/auth';
+
+  /**
+   * Sign up a new user
+   */
+  static async signup(data: {
+    email: string;
+    password: string;
+    name: string;
+    timezone?: string;
+    workHours?: any;
+  }): Promise<SignupResponse | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/signup`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          toast.error(result.error || 'Too many signup attempts. Please try again later.');
+        } else {
+          toast.error(result.error || 'Failed to create account. Please try again.');
+        }
+        return result;
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast.error('Failed to create account. Please try again.');
+      return null;
+    }
+  }
+
+  /**
+   * Sign in user
+   */
+  static async signin(data: {
+    email: string;
+    password: string;
+  }): Promise<SigninResponse | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/signin`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          toast.error(result.error || 'Too many signin attempts. Please try again later.');
+        } else if (response.status === 403 && result.requiresEmailVerification) {
+          toast.error(result.error || 'Please verify your email before signing in.');
+        } else {
+          toast.error(result.error || 'Invalid email or password. Please try again.');
+        }
+        return result;
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Signin error:', error);
+      toast.error('Failed to sign in. Please try again.');
+      return null;
+    }
+  }
+
+  /**
+   * Request password reset
+   */
+  static async forgotPassword(email: string): Promise<ForgotPasswordResponse | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/forgot-password`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          toast.error(result.error || 'Too many password reset requests. Please try again later.');
+        } else {
+          toast.error(result.error || 'Failed to send password reset email. Please try again.');
+        }
+        return result;
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      toast.error('Failed to send password reset email. Please try again.');
+      return null;
+    }
+  }
+
+  /**
+   * Reset password
+   */
+  static async resetPassword(data: {
+    password: string;
+    confirmPassword: string;
+  }): Promise<ResetPasswordResponse | null> {
+    try {
+      console.log('AuthAPI: Making reset password request to:', `${this.baseUrl}/reset-password`);
+      const response = await fetch(`${this.baseUrl}/reset-password`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      console.log('AuthAPI: Reset password response status:', response.status, 'URL:', response.url);
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('AuthAPI: Reset password failed with status:', response.status, 'Error:', result);
+        if (response.status === 429) {
+          toast.error(result.error || 'Too many password reset attempts. Please try again later.');
+        } else {
+          toast.error(result.error || 'Failed to reset password. Please try again.');
+        }
+        return result;
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Reset password error:', error);
+      toast.error('Failed to reset password. Please try again.');
+      return null;
+    }
+  }
 
   /**
    * Validate current session and get session health
@@ -105,24 +309,20 @@ export class AuthAPI {
       const data = await response.json();
 
       if (!response.ok) {
-        if (data.requiresLogin) {
-          toast.error('Your session has expired. Please sign in again.');
-          // Could trigger redirect to login here
-        } else {
-          toast.error(data.error || 'Failed to refresh session');
-        }
+        // Silent failure for background refresh - only log for debugging
+        logger.warn('Session refresh failed', { error: data.error || 'Unknown error' });
         return data;
       }
 
       if (data.refreshed) {
         // Silent refresh - no need to notify user of successful background operation
-        console.log('[AuthAPI] Session refreshed successfully');
+        logger.debug('Session refreshed successfully');
       }
 
       return data;
     } catch (error) {
-      console.error('Session refresh error:', error);
-      toast.error('Failed to refresh session. Please try again.');
+      logger.error('Session refresh error', { error: (error as Error).message }, error as Error);
+      // Silent failure for background refresh
       return null;
     }
   }

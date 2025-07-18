@@ -163,7 +163,7 @@ export function DailyPlanner() {
 
   const handleTaskDelete = async (taskId: string) => {
     try {
-      await TaskService.deleteTask(taskId);
+      await TaskService.deleteTask(taskId, user?.id || '');
       setTasks(prev => prev.filter(task => task.id !== taskId));
       toast.success('Task deleted.');
     } catch (error) {

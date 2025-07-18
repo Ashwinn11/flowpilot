@@ -13,6 +13,75 @@ export interface ValidationResult {
   sanitizedData?: any;
 }
 
+// Centralized error messages for consistency
+export const AuthErrorMessages = {
+  // Email errors
+  EMAIL_REQUIRED: 'Email address is required',
+  EMAIL_INVALID: 'Please enter a valid email address',
+  EMAIL_TOO_LONG: 'Email address is too long',
+  EMAIL_NOT_FOUND: 'No account found with this email address',
+  EMAIL_ALREADY_EXISTS: 'An account with this email already exists',
+  
+  // Password errors
+  PASSWORD_REQUIRED: 'Password is required',
+  PASSWORD_TOO_SHORT: 'Password must be at least 8 characters long',
+  PASSWORD_TOO_LONG: 'Password is too long (max 128 characters)',
+  PASSWORD_NO_LOWERCASE: 'Password must contain at least one lowercase letter',
+  PASSWORD_NO_UPPERCASE: 'Password must contain at least one uppercase letter',
+  PASSWORD_NO_NUMBER: 'Password must contain at least one number',
+  PASSWORD_TOO_COMMON: 'This password is too common. Please choose a stronger password',
+  PASSWORD_MISMATCH: 'Passwords do not match',
+  INVALID_CREDENTIALS: 'Invalid email or password. Please try again.',
+  
+  // Name errors
+  NAME_REQUIRED: 'Name is required',
+  NAME_EMPTY: 'Name cannot be empty',
+  NAME_TOO_LONG: 'Name is too long (max 100 characters)',
+  NAME_INVALID_TYPE: 'Name must be a string',
+  
+  // Timezone errors
+  TIMEZONE_INVALID: 'Invalid timezone identifier',
+  TIMEZONE_INVALID_TYPE: 'Timezone must be a string',
+  
+  // Work hours errors
+  WORK_HOURS_REQUIRED: 'Please set your work hours',
+  WORK_DAYS_REQUIRED: 'Please select at least one work day',
+  
+  // Terms errors
+  TERMS_REQUIRED: 'You must accept the terms and conditions',
+  
+  // Rate limiting errors
+  RATE_LIMIT_SIGNUP: 'Too many signup attempts. Please try again later.',
+  RATE_LIMIT_SIGNIN: 'Too many signin attempts. Please try again later.',
+  RATE_LIMIT_PASSWORD_RESET: 'Too many password reset requests. Please try again later.',
+  RATE_LIMIT_OAUTH: 'Too many sign-in attempts. Please try again later.',
+  
+  // OAuth errors
+  OAUTH_GOOGLE_FAILED: 'Google sign-in failed. Please try again.',
+  OAUTH_MICROSOFT_FAILED: 'Microsoft sign-in failed. Please try again.',
+  OAUTH_PROVIDER_REQUIRED: 'This email is registered with {provider}. Please use the {provider} button above.',
+  
+  // Email verification errors
+  EMAIL_NOT_VERIFIED: 'Please verify your email address before signing in. Check your inbox for a verification link.',
+  EMAIL_VERIFICATION_REQUIRED: 'Please check your email and click the verification link to complete your signup.',
+  
+  // General errors
+  UNEXPECTED_ERROR: 'An unexpected error occurred. Please try again.',
+  NETWORK_ERROR: 'Network error. Please check your connection and try again.',
+  SERVICE_UNAVAILABLE: 'Service temporarily unavailable. Please try again later.',
+  
+  // Success messages
+  SIGNUP_SUCCESS: 'Your account was created! Please check your email to verify and get started.',
+  SIGNIN_SUCCESS: 'Welcome back! You\'ve signed in successfully.',
+  PASSWORD_RESET_SENT: 'Password reset email sent successfully!',
+  PASSWORD_RESET_SUCCESS: 'Your password has been reset successfully.',
+  EMAIL_VERIFICATION_SENT: 'Verification email sent successfully!',
+  
+  // Info messages
+  NEW_USER_REDIRECT: 'No account found. Redirecting to signup...',
+  CHECKING_ACCOUNT: 'Checking your account...',
+} as const;
+
 export class AuthValidator {
   
   /**
@@ -24,7 +93,7 @@ export class AuthValidator {
     if (!email) {
       errors.push({
         field: 'email',
-        message: 'Email address is required',
+        message: AuthErrorMessages.EMAIL_REQUIRED,
         code: 'EMAIL_REQUIRED'
       });
       return { isValid: false, errors };
@@ -35,7 +104,7 @@ export class AuthValidator {
     if (!emailRegex.test(email)) {
       errors.push({
         field: 'email',
-        message: 'Please enter a valid email address',
+        message: AuthErrorMessages.EMAIL_INVALID,
         code: 'EMAIL_INVALID'
       });
     }
@@ -43,7 +112,7 @@ export class AuthValidator {
     if (email.length > 254) {
       errors.push({
         field: 'email',
-        message: 'Email address is too long',
+        message: AuthErrorMessages.EMAIL_TOO_LONG,
         code: 'EMAIL_TOO_LONG'
       });
     }
@@ -64,7 +133,7 @@ export class AuthValidator {
     if (!password) {
       errors.push({
         field: 'password',
-        message: 'Password is required',
+        message: AuthErrorMessages.PASSWORD_REQUIRED,
         code: 'PASSWORD_REQUIRED'
       });
       return { isValid: false, errors };
@@ -73,7 +142,7 @@ export class AuthValidator {
     if (password.length < 8) {
       errors.push({
         field: 'password',
-        message: 'Password must be at least 8 characters long',
+        message: AuthErrorMessages.PASSWORD_TOO_SHORT,
         code: 'PASSWORD_TOO_SHORT'
       });
     }
@@ -81,7 +150,7 @@ export class AuthValidator {
     if (password.length > 128) {
       errors.push({
         field: 'password',
-        message: 'Password is too long (max 128 characters)',
+        message: AuthErrorMessages.PASSWORD_TOO_LONG,
         code: 'PASSWORD_TOO_LONG'
       });
     }
@@ -90,7 +159,7 @@ export class AuthValidator {
     if (!/[a-z]/.test(password)) {
       errors.push({
         field: 'password',
-        message: 'Password must contain at least one lowercase letter',
+        message: AuthErrorMessages.PASSWORD_NO_LOWERCASE,
         code: 'PASSWORD_NO_LOWERCASE'
       });
     }
@@ -99,7 +168,7 @@ export class AuthValidator {
     if (!/[A-Z]/.test(password)) {
       errors.push({
         field: 'password',
-        message: 'Password must contain at least one uppercase letter',
+        message: AuthErrorMessages.PASSWORD_NO_UPPERCASE,
         code: 'PASSWORD_NO_UPPERCASE'
       });
     }
@@ -108,7 +177,7 @@ export class AuthValidator {
     if (!/[0-9]/.test(password)) {
       errors.push({
         field: 'password',
-        message: 'Password must contain at least one number',
+        message: AuthErrorMessages.PASSWORD_NO_NUMBER,
         code: 'PASSWORD_NO_NUMBER'
       });
     }
@@ -122,7 +191,7 @@ export class AuthValidator {
     if (commonPasswords.includes(password.toLowerCase())) {
       errors.push({
         field: 'password',
-        message: 'This password is too common. Please choose a stronger password',
+        message: AuthErrorMessages.PASSWORD_TOO_COMMON,
         code: 'PASSWORD_TOO_COMMON'
       });
     }
@@ -146,19 +215,19 @@ export class AuthValidator {
       if (typeof data.name !== 'string') {
         errors.push({
           field: 'name',
-          message: 'Name must be a string',
+          message: AuthErrorMessages.NAME_INVALID_TYPE,
           code: 'NAME_INVALID_TYPE'
         });
       } else if (data.name.trim().length === 0) {
         errors.push({
           field: 'name',
-          message: 'Name cannot be empty',
+          message: AuthErrorMessages.NAME_EMPTY,
           code: 'NAME_EMPTY'
         });
       } else if (data.name.trim().length > 100) {
         errors.push({
           field: 'name',
-          message: 'Name is too long (max 100 characters)',
+          message: AuthErrorMessages.NAME_TOO_LONG,
           code: 'NAME_TOO_LONG'
         });
       } else {
@@ -181,7 +250,7 @@ export class AuthValidator {
       if (typeof data.timezone !== 'string') {
         errors.push({
           field: 'timezone',
-          message: 'Timezone must be a string',
+          message: AuthErrorMessages.TIMEZONE_INVALID_TYPE,
           code: 'TIMEZONE_INVALID_TYPE'
         });
       } else {
@@ -192,7 +261,7 @@ export class AuthValidator {
         } catch (error) {
           errors.push({
             field: 'timezone',
-            message: 'Invalid timezone identifier',
+            message: AuthErrorMessages.TIMEZONE_INVALID,
             code: 'TIMEZONE_INVALID'
           });
         }
@@ -204,7 +273,7 @@ export class AuthValidator {
       if (!Array.isArray(data.workHours) || data.workHours.length !== 7) {
         errors.push({
           field: 'workHours',
-          message: 'Work hours must be an array of 7 elements (one for each day)',
+          message: AuthErrorMessages.WORK_HOURS_REQUIRED,
           code: 'WORK_HOURS_INVALID_FORMAT'
         });
       } else {
@@ -218,7 +287,7 @@ export class AuthValidator {
         if (!validWorkHours) {
           errors.push({
             field: 'workHours',
-            message: 'Invalid work hours format',
+            message: AuthErrorMessages.WORK_HOURS_REQUIRED,
             code: 'WORK_HOURS_INVALID_STRUCTURE'
           });
         } else {
@@ -258,37 +327,141 @@ export class AuthValidator {
   }
 
   /**
-   * Check if password meets minimum requirements
+   * Enhanced password strength checker with detailed feedback
    */
   static getPasswordStrength(password: string): {
     score: number;
     feedback: string[];
     isStrong: boolean;
+    requirements: {
+      length: boolean;
+      lowercase: boolean;
+      uppercase: boolean;
+      numbers: boolean;
+      special: boolean;
+      noCommon: boolean;
+      noSequential: boolean;
+    };
   } {
     const feedback: string[] = [];
     let score = 0;
+    const requirements = {
+      length: false,
+      lowercase: false,
+      uppercase: false,
+      numbers: false,
+      special: false,
+      noCommon: false,
+      noSequential: false
+    };
 
-    if (password.length >= 8) score += 1;
-    else feedback.push('Use at least 8 characters');
+    // Length check (8+ characters)
+    if (password.length >= 8) {
+      score += 1;
+      requirements.length = true;
+    } else {
+      feedback.push('Use at least 8 characters');
+    }
 
-    if (/[a-z]/.test(password)) score += 1;
-    else feedback.push('Add lowercase letters');
+    // Lowercase letters
+    if (/[a-z]/.test(password)) {
+      score += 1;
+      requirements.lowercase = true;
+    } else {
+      feedback.push('Add lowercase letters');
+    }
 
-    if (/[A-Z]/.test(password)) score += 1;
-    else feedback.push('Add uppercase letters');
+    // Uppercase letters
+    if (/[A-Z]/.test(password)) {
+      score += 1;
+      requirements.uppercase = true;
+    } else {
+      feedback.push('Add uppercase letters');
+    }
 
-    if (/[0-9]/.test(password)) score += 1;
-    else feedback.push('Add numbers');
+    // Numbers
+    if (/[0-9]/.test(password)) {
+      score += 1;
+      requirements.numbers = true;
+    } else {
+      feedback.push('Add numbers');
+    }
 
-    if (/[^a-zA-Z0-9]/.test(password)) score += 1;
-    else feedback.push('Add special characters');
+    // Special characters
+    if (/[^a-zA-Z0-9]/.test(password)) {
+      score += 1;
+      requirements.special = true;
+    } else {
+      feedback.push('Add special characters (!@#$%^&*)');
+    }
 
-    if (password.length >= 12) score += 1;
+    // Length bonus (12+ characters)
+    if (password.length >= 12) {
+      score += 1;
+    }
+
+    // Check for common weak passwords
+    const commonPasswords = [
+      'password', 'password123', '123456789', 'qwerty', 'abc123',
+      'password1', 'admin', 'welcome', 'letmein', 'monkey',
+      '123456', '12345678', 'qwerty123', '1q2w3e4r', 'password123',
+      'admin123', 'root', 'toor', 'test', 'guest'
+    ];
+    
+    if (!commonPasswords.includes(password.toLowerCase())) {
+      score += 1;
+      requirements.noCommon = true;
+    } else {
+      feedback.push('Avoid common passwords');
+    }
+
+    // Check for sequential characters (like 123, abc, qwe)
+    const sequentialPatterns = [
+      '123', '234', '345', '456', '567', '678', '789', '890',
+      'abc', 'bcd', 'cde', 'def', 'efg', 'fgh', 'ghi', 'hij',
+      'qwe', 'wer', 'ert', 'rty', 'tyu', 'yui', 'uio', 'iop',
+      'asd', 'sdf', 'dfg', 'fgh', 'ghj', 'hjk', 'jkl', 'kl;'
+    ];
+    
+    const hasSequential = sequentialPatterns.some(pattern => 
+      password.toLowerCase().includes(pattern)
+    );
+    
+    if (!hasSequential) {
+      score += 1;
+      requirements.noSequential = true;
+    } else {
+      feedback.push('Avoid sequential characters (123, abc, qwe)');
+    }
+
+    // Check for repeated characters
+    const hasRepeated = /(.)\1{2,}/.test(password);
+    if (!hasRepeated) {
+      score += 1;
+    } else {
+      feedback.push('Avoid repeated characters (aaa, 111)');
+    }
+
+    // Check for keyboard patterns
+    const keyboardPatterns = [
+      'qwerty', 'asdfgh', 'zxcvbn', '123456', '654321'
+    ];
+    
+    const hasKeyboardPattern = keyboardPatterns.some(pattern => 
+      password.toLowerCase().includes(pattern)
+    );
+    
+    if (!hasKeyboardPattern) {
+      score += 1;
+    } else {
+      feedback.push('Avoid keyboard patterns');
+    }
 
     return {
-      score,
+      score: Math.min(score, 10), // Cap at 10
       feedback,
-      isStrong: score >= 4
+      isStrong: score >= 6,
+      requirements
     };
   }
 }
