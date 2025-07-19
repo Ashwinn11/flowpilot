@@ -9,7 +9,9 @@ create table if not exists user_profiles (
   is_pro_user boolean default false,
   stripe_customer_id text,
   created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
+  updated_at timestamp with time zone default now(),
+  mfa_enabled boolean default false,
+  mfa_secret text -- encrypted in app logic, nullable
 );
 
 -- user_integrations table
@@ -162,6 +164,23 @@ create policy "Users can manage their own daily feedback"
   on daily_feedback for all
   using (auth.uid() = user_id);
 
+-- Audit logging table for security events
+create table if not exists audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
+  action text not null,
+  details jsonb,
+  ip_address inet,
+  user_agent text,
+  severity text check (severity in ('low', 'medium', 'high', 'critical')) default 'medium',
+  created_at timestamp with time zone default now()
+);
+
+-- Index for efficient querying
+create index if not exists idx_audit_logs_user_id on audit_logs(user_id);
+create index if not exists idx_audit_logs_action on audit_logs(action);
+create index if not exists idx_audit_logs_severity on audit_logs(severity);
+create index if not exists idx_audit_logs_created_at on audit_logs(created_at);
 
 
   create or replace function update_updated_at_column()

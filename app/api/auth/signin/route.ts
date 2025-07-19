@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { auditLogger } from '@/lib/audit-logger';
 import { AuthValidator, AuthSecurity, RateLimit, AuthErrorMessages } from '@/lib/auth-validation';
 import { securityManager } from '@/lib/security';
 import { logger } from '@/lib/logger';
+import { threatDetection } from '@/lib/threat-detection';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -88,13 +90,57 @@ export async function POST(request: NextRequest) {
     if (error) {
       securityManager.recordLoginAttempt(rateLimitKey);
       
+      // Check for threat patterns
+      const threatResult = await threatDetection.checkThreat(
+        'brute_force_login',
+        '', // No userId for failed login
+        { email: emailValidation.sanitizedData?.email, error: error.message },
+        clientIP,
+        request.headers.get('user-agent') || 'unknown'
+      );
+
+      // Check for suspicious user agent
+      const userAgent = request.headers.get('user-agent') || '';
+      if (!userAgent || userAgent.length < 10 || userAgent.includes('bot')) {
+        await threatDetection.checkThreat(
+          'suspicious_user_agent',
+          '',
+          { userAgent },
+          clientIP,
+          userAgent
+        );
+      }
+      
+      // Log failed login attempt
+      await auditLogger.logLogin(
+        '', // No userId for failed login
+        false,
+        { 
+          email: emailValidation.sanitizedData?.email, 
+          error: error.message,
+          requestId,
+          threatDetected: threatResult.threat
+        },
+        clientIP,
+        request.headers.get('user-agent') || 'unknown'
+      );
+      
       logger.warn('Signin failed', {
         requestId,
         clientIP,
         email: emailValidation.sanitizedData?.email,
         error: error.message,
-        userAgent: request.headers.get('user-agent')?.substring(0, 100)
+        userAgent: request.headers.get('user-agent')?.substring(0, 100),
+        threatDetected: threatResult.threat
       });
+
+      // If threat detected and action is block, return blocked response
+      if (threatResult.threat && threatResult.action === 'block') {
+        return NextResponse.json({
+          error: 'Access temporarily blocked',
+          message: 'Too many failed attempts. Please try again later.'
+        }, { status: 429 });
+      }
 
       return NextResponse.json({
         error: 'Authentication failed',
@@ -104,6 +150,19 @@ export async function POST(request: NextRequest) {
 
     // Successful signin - clear rate limiting
     securityManager.clearRateLimit(rateLimitKey);
+
+    // Log successful login
+    await auditLogger.logLogin(
+      data.user?.id,
+      true,
+      { 
+        email: data.user?.email,
+        requestId,
+        duration: Date.now() - startTime
+      },
+      clientIP,
+      request.headers.get('user-agent') || 'unknown'
+    );
 
     logger.info('Signin successful', {
       requestId,

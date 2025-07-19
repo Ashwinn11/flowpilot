@@ -37,16 +37,14 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://*.supabase.co https://api.stripe.com https://www.google-analytics.com",
-              "frame-src 'none'",
-              "object-src 'none'",
+              "connect-src 'self' https://*.supabase.co https://api.openai.com",
+              "frame-ancestors 'none'",
               "base-uri 'self'",
-              "form-action 'self'",
-              "upgrade-insecure-requests"
+              "form-action 'self'"
             ].join('; ')
           },
           // HTTP Strict Transport Security

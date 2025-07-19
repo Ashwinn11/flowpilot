@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { auditLogger } from '@/lib/audit-logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,6 +37,16 @@ export async function POST(request: NextRequest) {
           message: 'Logout failed. Please try again.'
         },
         { status: 500 }
+      );
+    }
+
+    // Log successful logout
+    if (session?.user?.id) {
+      await auditLogger.logLogout(
+        session.user.id,
+        { action: 'logout' },
+        request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+        request.headers.get('user-agent') || 'unknown'
       );
     }
 

@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import type { Database } from './supabase';
 import { toast } from 'sonner';
+import { logger } from './logger';
 
 export type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
 export type UserProfileUpdate = Database['public']['Tables']['user_profiles']['Update'];
@@ -10,14 +11,11 @@ export class ProfileService {
    * Get the current user's profile
    */
   static async getCurrentUserProfile(): Promise<UserProfile | null> {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[DEBUG] getCurrentUserProfile called', new Date().toISOString());
-    }
-    console.trace('[DEBUG] getCurrentUserProfile stack trace');
+    logger.debug('getCurrentUserProfile called');
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !user.id) {
-        console.warn('[Profile Fetch] [UserID: none] No user or user.id found, skipping profile fetch.');
+        logger.warn('No user or user.id found, skipping profile fetch');
         return null;
       }
 
@@ -28,13 +26,13 @@ export class ProfileService {
         .single();
 
       if (error) {
-        console.error(`[Profile Fetch] [UserID: ${user.id}] Error:`, error);
+        logger.error('Failed to fetch user profile', { userId: user.id, error: error.message }, error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error(`[Profile Fetch] [UserID: unknown] Error:`, error);
+      logger.error('Error in getCurrentUserProfile', { error: (error as Error).message }, error as Error);
       return null;
     }
   }
@@ -46,7 +44,7 @@ export class ProfileService {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !user.id) {
-        console.warn('[Profile Update] [UserID: none] No user or user.id found, skipping profile update.');
+        logger.warn('No user or user.id found, skipping profile update');
         return null;
       }
 
@@ -58,13 +56,13 @@ export class ProfileService {
         .single();
 
       if (error) {
-        console.error(`[Profile Update] [UserID: ${user.id}] Error:`, error);
+        logger.error('Failed to update user profile', { userId: user.id, error: error.message }, error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error(`[Profile Update] [UserID: unknown] Error:`, error);
+      logger.error('Error in updateProfile', { error: (error as Error).message }, error as Error);
       return null;
     }
   }
@@ -86,7 +84,7 @@ export class ProfileService {
 
       return trialDaysRemaining;
     } catch (error) {
-      console.error('Error calculating trial days:', error);
+      logger.error('Error calculating trial days', { error: (error as Error).message }, error as Error);
       return 0;
     }
   }
@@ -114,7 +112,7 @@ export class ProfileService {
         )
         .subscribe((status) => {
           if (status === 'CHANNEL_ERROR') {
-            console.warn('Real-time subscription failed, falling back to polling');
+            logger.warn('Real-time subscription failed, falling back to polling');
             // Fallback to polling if real-time fails
             this.setupPollingFallback(userId, callback);
           }
@@ -122,7 +120,7 @@ export class ProfileService {
 
       return channel;
     } catch (error) {
-      console.warn('Real-time subscription setup failed, using polling fallback:', error);
+      logger.warn('Real-time subscription setup failed, using polling fallback', { error: (error as Error).message }, error as Error);
       return this.setupPollingFallback(userId, callback);
     }
   }
@@ -136,9 +134,7 @@ export class ProfileService {
   private static setupPollingFallback(userId: string, callback: (profile: UserProfile) => void) {
     // If a poller already exists for this user, do not start another
     if (this.pollingMap.has(userId)) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[Polling Fallback] Poller already running for user ${userId}`);
-      }
+      logger.debug('Poller already running for user', { userId });
       return {
         unsubscribe: this.pollingMap.get(userId)!.stop
       };
@@ -160,12 +156,10 @@ export class ProfileService {
         consecutiveErrors = 0; // Reset on success
       } catch (error) {
         consecutiveErrors++;
-        console.error(`[Polling Fallback] [UserID: ${userId}] Error:`, error);
+        logger.error('Polling fallback error', { userId, consecutiveErrors, error: (error as Error).message }, error as Error);
         if (consecutiveErrors >= maxErrors) {
           stopPolling();
-          if (process.env.NODE_ENV !== 'production') {
-            console.warn(`[Polling Fallback] [UserID: ${userId}] Stopped after too many errors.`);
-          }
+          logger.warn('Polling fallback stopped after too many errors', { userId, consecutiveErrors });
           toast.error(
             'We lost connection to your profile updates. Try refreshing the page, and if this keeps happening, please contact support@flowpilot.com.',
             { duration: 10000 }
@@ -178,9 +172,7 @@ export class ProfileService {
       if (isPolling) return;
       isPolling = true;
       toast.warning('We’re having trouble staying in sync. Profile updates might be a little slower right now.');
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[Polling Fallback] Starting poller for user ${userId}`);
-      }
+      logger.debug('Starting poller for user', { userId });
       const interval = setInterval(poll, 300000); // 5 minutes
       // Save stop function in map
       this.pollingMap.set(userId, {
@@ -196,9 +188,7 @@ export class ProfileService {
       if (poller) {
         clearInterval(poller.interval);
         this.pollingMap.delete(userId);
-        if (process.env.NODE_ENV !== 'production') {
-          console.log(`[Polling Fallback] Stopped poller for user ${userId}`);
-        }
+        logger.debug('Stopped poller for user', { userId });
       }
     };
 

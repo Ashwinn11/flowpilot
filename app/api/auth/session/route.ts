@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,15 +27,14 @@ export async function GET(request: NextRequest) {
     // Check for session
     const { data: { session }, error } = await supabase.auth.getSession();
     
-    console.log('Session check API:', { 
+    logger.debug('Session check API', { 
       hasSession: !!session, 
-      userEmail: session?.user?.email,
       sessionType: session?.user?.aud,
       error: error?.message 
     });
 
     if (error) {
-      console.error('Session check error:', error);
+      logger.error('Session check error', { error: error.message }, error);
       return NextResponse.json({ hasSession: false, error: error.message });
     }
 
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Session check unexpected error:', error);
+    logger.error('Session check unexpected error', { error: (error as Error).message }, error as Error);
     return NextResponse.json(
       { hasSession: false, error: 'Failed to check session' },
       { status: 500 }
