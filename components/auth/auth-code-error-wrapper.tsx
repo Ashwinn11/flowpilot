@@ -17,6 +17,24 @@ export default function AuthCodeErrorWrapper() {
     if (error === 'access_denied') {
       return 'The verification link is invalid or has expired.';
     }
+    if (error === 'invalid_state') {
+      return 'Invalid authentication state. Please try signing in again.';
+    }
+    if (error === 'rate_limited') {
+      return 'Too many authentication attempts. Please wait a few minutes and try again.';
+    }
+    if (error === 'no_session') {
+      return 'Authentication session could not be established. Please try signing in again.';
+    }
+    if (error === 'code_exchange_failed') {
+      return 'Authentication failed. Please try signing in again.';
+    }
+    if (error === 'no_code') {
+      return 'Invalid authentication callback. Please try signing in again.';
+    }
+    if (error === 'unexpected') {
+      return 'An unexpected error occurred during authentication. Please try again.';
+    }
     return 'There was an error verifying your email. Please try again.';
   };
 

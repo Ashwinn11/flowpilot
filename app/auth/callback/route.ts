@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const next = searchParams.get('next') ?? '/dashboard';
     const state = searchParams.get('state'); // OAuth state parameter
     
-    // Security logging (without sensitive data)
+    // Enhanced security logging (without sensitive data)
     logger.info('OAuth callback initiated', {
       requestId,
       clientIP,
@@ -25,7 +25,8 @@ export async function GET(request: NextRequest) {
       hasState: !!state,
       next,
       userAgent: userAgent.substring(0, 100), // Truncate for security
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      url: request.url
     });
 
     // Validate OAuth state parameter if present (CSRF protection)
@@ -71,20 +72,6 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    // Check for existing session first (but only if we have a code to process)
-    // For password reset, we want to process the code even if there's an existing session
-    if (code && next !== '/auth/reset-password') {
-      const { data: { session: existingSession } } = await supabase.auth.getSession();
-      if (existingSession) {
-        logger.info('OAuth callback: Existing session found, redirecting', {
-          requestId,
-          userEmail: existingSession.user?.email,
-          next
-        });
-        return NextResponse.redirect(`${origin}${next}`);
-      }
-    }
-
     if (code) {
       logger.info('OAuth callback: Processing code', { requestId, next });
       
@@ -105,6 +92,7 @@ export async function GET(request: NextRequest) {
           hasSession: !!session, 
           userEmail: session?.user?.email,
           next,
+          redirectUrl: `${origin}${next}`,
           duration: Date.now() - startTime
         });
         
@@ -119,9 +107,29 @@ export async function GET(request: NextRequest) {
           return NextResponse.redirect(`${origin}${next}`);
         }
         
-        // For regular sign-ins, redirect to the intended destination
-        logger.info('OAuth callback: Redirecting to dashboard', { requestId });
-        return NextResponse.redirect(`${origin}${next}`);
+        // For regular sign-ins, ensure session is properly set before redirecting
+        if (session) {
+          // Add a small delay to ensure session is properly persisted
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Double-check session is still valid
+          const { data: { session: finalSession } } = await supabase.auth.getSession();
+          
+          logger.info('OAuth callback: Redirecting to dashboard', { 
+            requestId, 
+            redirectUrl: `${origin}${next}`,
+            userEmail: finalSession?.user?.email,
+            sessionValid: !!finalSession
+          });
+          
+          return NextResponse.redirect(`${origin}${next}`);
+        } else {
+          logger.error('OAuth callback: No session after successful code exchange', {
+            requestId,
+            redirectUrl: `${origin}${next}`
+          });
+          return NextResponse.redirect(`${origin}/auth/auth-code-error?error=no_session`);
+        }
       } else {
         logger.error('OAuth callback: Code exchange error', {
           requestId,
@@ -131,10 +139,14 @@ export async function GET(request: NextRequest) {
           userAgent: userAgent.substring(0, 100)
         });
         
-        // If the session is already set, allow redirect anyway
+        // Check if we have a session despite the error (might happen in some OAuth flows)
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          logger.info('OAuth callback: Session exists despite error, redirecting', { requestId });
+          logger.info('OAuth callback: Session exists despite error, redirecting', { 
+            requestId,
+            redirectUrl: `${origin}${next}`,
+            userEmail: session?.user?.email
+          });
           return NextResponse.redirect(`${origin}${next}`);
         }
         
@@ -145,6 +157,9 @@ export async function GET(request: NextRequest) {
           userAgent: userAgent.substring(0, 100),
           error: error.message
         });
+        
+        // Redirect to auth-code-error with specific error
+        return NextResponse.redirect(`${origin}/auth/auth-code-error?error=code_exchange_failed`);
       }
     } else {
       logger.warn('OAuth callback: No code found in callback URL', {
@@ -157,17 +172,17 @@ export async function GET(request: NextRequest) {
       // Check if we have a session even without a code (might happen in some OAuth flows)
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        logger.info('OAuth callback: Session found without code, redirecting', { requestId });
+        logger.info('OAuth callback: Session found without code, redirecting', { 
+          requestId,
+          redirectUrl: `${origin}${next}`,
+          userEmail: session?.user?.email
+        });
         return NextResponse.redirect(`${origin}${next}`);
       }
+      
+      // No code and no session - redirect to auth-code-error
+      return NextResponse.redirect(`${origin}/auth/auth-code-error?error=no_code`);
     }
-
-    logger.error('OAuth callback: Redirecting to auth-code-error page', {
-      requestId,
-      clientIP,
-      userAgent: userAgent.substring(0, 100)
-    });
-    return NextResponse.redirect(`${origin}/auth/auth-code-error`);
     
   } catch (error) {
     logger.error('OAuth callback: Unexpected error', {

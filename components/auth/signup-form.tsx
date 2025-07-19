@@ -52,7 +52,20 @@ export function SignupForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState<AuthValidationError[]>([]);
-  const [passwordStrength, setPasswordStrength] = useState<{score: number; feedback: string[]; isStrong: boolean} | null>(null);
+  const [passwordStrength, setPasswordStrength] = useState<{
+    score: number;
+    feedback: string[];
+    isStrong: boolean;
+    requirements: {
+      length: boolean;
+      lowercase: boolean;
+      uppercase: boolean;
+      numbers: boolean;
+      special: boolean;
+      noCommon: boolean;
+      noSequential: boolean;
+    };
+  } | null>(null);
   const [oauthOnly, setOauthOnly] = useState(false);
   const [oauthProvider, setOauthProvider] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -95,6 +108,15 @@ export function SignupForm() {
       console.log('Could not detect timezone, using UTC');
     }
   }, []);
+
+  // Update password strength when password changes
+  useEffect(() => {
+    if (formData.password) {
+      setPasswordStrength(AuthValidator.getPasswordStrength(formData.password));
+    } else {
+      setPasswordStrength(null);
+    }
+  }, [formData.password]);
 
   const validateStep = (step: number): boolean => {
     setValidationErrors([]);
@@ -372,6 +394,34 @@ export function SignupForm() {
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     Password strength: {getPasswordStrengthText()}
                   </p>
+                  
+                  {/* Password requirements */}
+                  {passwordStrength && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Requirements:</p>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        <span className={passwordStrength.requirements.length ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                          {passwordStrength.requirements.length ? '✓' : '✗'} 8+ chars
+                        </span>
+                        <span className="mx-1">•</span>
+                        <span className={passwordStrength.requirements.lowercase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                          {passwordStrength.requirements.lowercase ? '✓' : '✗'} <strong>a-z</strong>
+                        </span>
+                        <span className="mx-1">•</span>
+                        <span className={passwordStrength.requirements.uppercase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                          {passwordStrength.requirements.uppercase ? '✓' : '✗'} <strong>A-Z</strong>
+                        </span>
+                        <span className="mx-1">•</span>
+                        <span className={passwordStrength.requirements.numbers ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                          {passwordStrength.requirements.numbers ? '✓' : '✗'} <strong>0-9</strong>
+                        </span>
+                        <span className="mx-1">•</span>
+                        <span className={passwordStrength.requirements.special ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                          {passwordStrength.requirements.special ? '✓' : '✗'} <strong>!@#$%</strong>
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
