@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 import { securityManager } from '@/lib/security';
 import { logger } from '@/lib/logger';
 
@@ -8,24 +9,55 @@ const SECURITY_CONFIG = {
   maxRequestsPerMinute: 100,
   maxRequestsPerHour: 1000,
   
-  // Blocked user agents
+  // Protected routes requiring authentication
+  protectedRoutes: [
+    '/dashboard',
+    '/settings', 
+    '/progress',
+    '/upgrade',
+    '/test-profile',
+    '/api/tasks',
+    '/api/user',
+    '/api/auth/user',
+    '/api/auth/refresh',
+    '/api/auth/logout',
+    '/api/auth/mfa'
+  ],
+  
+  // Public routes that don't require auth
+  publicRoutes: [
+    '/',
+    '/auth',
+    '/signup',
+    '/forgot-password',
+    '/api/auth/signin',
+    '/api/auth/signup',
+    '/api/auth/session',
+    '/api/auth/check-email',
+    '/api/auth/forgot-password',
+    '/api/auth/reset-password',
+    '/api/auth/callback',
+    '/auth/callback',
+    '/auth/verify-email',
+    '/auth/reset-password',
+    '/auth/auth-code-error'
+  ],
+  
+  // Blocked user agents (more specific to avoid blocking legitimate tools)
   blockedUserAgents: [
-    /bot/i,
-    /crawler/i,
+    /scrapy/i,
     /spider/i,
-    /scraper/i,
-    /curl/i,
-    /wget/i,
-    /python/i,
-    /java/i,
-    /perl/i,
-    /ruby/i
+    /crawl/i,
+    /bot.*scan/i,
+    /malicious/i,
+    /attack/i,
+    // Remove overly broad patterns like /curl/, /python/, etc.
   ],
   
   // Blocked IPs (example - should be loaded from environment or database)
   blockedIPs: new Set<string>(),
   
-  // Allowed origins for CORS
+  // Allowed origins for CORS (more flexible for development)
   allowedOrigins: [
     'http://localhost:3000',
     'http://localhost:3001',
@@ -36,9 +68,72 @@ const SECURITY_CONFIG = {
 // Rate limiting storage
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
+// Helper function to validate session server-side
+async function validateServerSession(request: NextRequest): Promise<boolean> {
+  try {
+    // Get cookies from the request
+    const cookieHeader = request.headers.get('cookie');
+    if (!cookieHeader) return false;
+
+    // Parse cookies manually for middleware
+    const cookies = new Map();
+    cookieHeader.split(';').forEach(cookie => {
+      const [name, value] = cookie.trim().split('=');
+      if (name && value) {
+        cookies.set(name, decodeURIComponent(value));
+      }
+    });
+
+    const supabaseClient = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookies.get(name);
+          },
+          set() {
+            // No-op in middleware
+          },
+          remove() {
+            // No-op in middleware
+          },
+        },
+      }
+    );
+
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
+    
+    if (error || !session) return false;
+    
+    // Validate session is authenticated and not expired
+    return session.user?.aud === 'authenticated' && 
+           session.expires_at && 
+           session.expires_at > Math.floor(Date.now() / 1000);
+           
+  } catch (error) {
+    logger.error('Session validation error in middleware', { error: (error as Error).message });
+    return false;
+  }
+}
+
+// Helper function to check if route is protected
+function isProtectedRoute(path: string): boolean {
+  return SECURITY_CONFIG.protectedRoutes.some(route => path.startsWith(route));
+}
+
+// Helper function to check if route is public
+function isPublicRoute(path: string): boolean {
+  return SECURITY_CONFIG.publicRoutes.some(route => 
+    path === route || path.startsWith(route)
+  );
+}
+
 export async function middleware(request: NextRequest) {
   const startTime = Date.now();
-  const clientIP = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
+  const clientIP = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
+                   request.headers.get('x-real-ip') || 
+                   'unknown';
   const userAgent = request.headers.get('user-agent') || 'unknown';
   const requestId = await securityManager.generateSecureRandom(16);
   const path = request.nextUrl.pathname;
@@ -52,8 +147,9 @@ export async function middleware(request: NextRequest) {
     requestId
   });
 
-  // 1. Block malicious user agents
-  if (SECURITY_CONFIG.blockedUserAgents.some(pattern => pattern.test(userAgent))) {
+  // 1. Block malicious user agents (more targeted blocking)
+  const isMaliciousAgent = SECURITY_CONFIG.blockedUserAgents.some(pattern => pattern.test(userAgent));
+  if (isMaliciousAgent) {
     logger.warn('Blocked malicious user agent', {
       requestId,
       clientIP,
@@ -94,10 +190,12 @@ export async function middleware(request: NextRequest) {
     rateLimitStore.set(rateLimitKey, { count: 1, resetTime: now + windowMs });
   }
 
-  // 4. CORS handling for API routes
+  // 4. CORS handling for API routes (more flexible)
   if (path.startsWith('/api/')) {
     const origin = request.headers.get('origin');
-    if (origin && !SECURITY_CONFIG.allowedOrigins.includes(origin)) {
+    const isLocalhost = origin?.includes('localhost') || origin?.includes('127.0.0.1');
+    
+    if (origin && !SECURITY_CONFIG.allowedOrigins.includes(origin) && !isLocalhost) {
       logger.warn('CORS violation', {
         requestId,
         clientIP,
@@ -108,7 +206,35 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 5. Security headers
+  // 5. **NEW: Authentication check for protected routes**
+  if (isProtectedRoute(path) && !isPublicRoute(path)) {
+    const hasValidSession = await validateServerSession(request);
+    
+    if (!hasValidSession) {
+      logger.warn('Unauthorized access attempt to protected route', {
+        requestId,
+        clientIP,
+        path,
+        userAgent: userAgent.substring(0, 100)
+      });
+      
+      // For API routes, return 401
+      if (path.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Unauthorized', message: 'Authentication required' },
+          { status: 401 }
+        );
+      }
+      
+      // For page routes, redirect to auth
+      const url = request.nextUrl.clone();
+      url.pathname = '/auth';
+      url.searchParams.set('next', path);
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // 6. Security headers
   const response = NextResponse.next();
   
   // Add security headers
@@ -123,7 +249,20 @@ export async function middleware(request: NextRequest) {
     response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   }
 
-  // 6. Log request completion
+  // Add CORS headers for API routes
+  if (path.startsWith('/api/')) {
+    const origin = request.headers.get('origin');
+    const isLocalhost = origin?.includes('localhost') || origin?.includes('127.0.0.1');
+    
+    if (origin && (SECURITY_CONFIG.allowedOrigins.includes(origin) || isLocalhost)) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
+      response.headers.set('Access-Control-Allow-Credentials', 'true');
+      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    }
+  }
+
+  // 7. Log request completion
   logger.info('Request completed', {
     method: request.method,
     path,

@@ -1,150 +1,161 @@
 import { supabase } from './supabase';
-import { AuthAPI } from './auth-api';
 import { logger } from './logger';
-
-interface SessionHealth {
-  isValid: boolean;
-  expiresAt: number | null;
-  timeUntilExpiry: number | null;
-  refreshedAt: number;
-}
-
-interface SessionMonitorConfig {
-  healthCheckInterval: number; // in milliseconds
-  warningThreshold: number; // minutes before expiry to show warning
-  autoRefreshThreshold: number; // minutes before expiry to auto-refresh
-}
+import { AuthAPI } from './auth-api';
 
 class SessionMonitorService {
-  private static instance: SessionMonitorService;
-  private healthCheckInterval: NodeJS.Timeout | null = null;
-  private config: SessionMonitorConfig = {
-    healthCheckInterval: 5 * 60 * 1000, // 5 minutes
-    warningThreshold: 10, // 10 minutes before expiry
-    autoRefreshThreshold: 5, // 5 minutes before expiry
-  };
-  private lastHealthCheck: number = 0;
-  private sessionWarningShown: boolean = false;
-  private isMonitoring: boolean = false;
+  private intervalId: NodeJS.Timeout | null = null;
+  private sessionWarningShown = false;
+  private isDestroyed = false;
+  
+  // Add debouncing for refresh operations
+  private refreshPromise: Promise<boolean> | null = null;
+  private refreshAttempts = 0;
+  private maxRefreshAttempts = 3;
+  private lastRefreshTime = 0;
+  private minRefreshInterval = 30000; // 30 seconds minimum between refreshes
 
-  static getInstance(): SessionMonitorService {
-    if (!SessionMonitorService.instance) {
-      SessionMonitorService.instance = new SessionMonitorService();
+  constructor() {
+    // Ensure we properly clean up on page unload
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', () => {
+        this.destroy();
+      });
     }
-    return SessionMonitorService.instance;
   }
 
   /**
    * Start monitoring session health
    */
-  startMonitoring(): void {
-    if (this.isMonitoring) {
-      logger.debug('Session monitoring already active, skipping start');
-      return;
-    }
-
-    this.stopMonitoring(); // Ensure no duplicate intervals
+  startMonitoring() {
+    if (this.intervalId || this.isDestroyed) return;
     
-    this.healthCheckInterval = setInterval(() => {
-      this.performHealthCheck();
-    }, this.config.healthCheckInterval);
-
-    this.isMonitoring = true;
-    logger.debug('Session monitoring started');
-
-    // Perform initial health check
-    this.performHealthCheck();
+    logger.debug('Starting session monitoring');
+    
+    // Check session health every 5 minutes
+    this.intervalId = setInterval(() => {
+      if (!this.isDestroyed) {
+        this.checkSessionHealth();
+      }
+    }, 5 * 60 * 1000);
+    
+    // Initial check
+    this.checkSessionHealth();
   }
 
   /**
-   * Stop monitoring session health
+   * Stop monitoring and cleanup
    */
-  stopMonitoring(): void {
-    if (this.healthCheckInterval) {
-      clearInterval(this.healthCheckInterval);
-      this.healthCheckInterval = null;
+  stopMonitoring() {
+    logger.debug('Stopping session monitoring');
+    
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
     }
+    
     this.sessionWarningShown = false;
-    this.isMonitoring = false;
-    logger.debug('Session monitoring stopped');
+    this.refreshPromise = null;
+    this.refreshAttempts = 0;
   }
 
   /**
-   * Get current session health status
+   * Destroy the service and cleanup all resources
    */
-  async getSessionHealth(): Promise<SessionHealth> {
+  destroy() {
+    this.isDestroyed = true;
+    this.stopMonitoring();
+  }
+
+  /**
+   * Check session health and handle refresh/warnings
+   */
+  private async checkSessionHealth() {
+    if (this.isDestroyed) return;
+    
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error || !session) {
-        return {
-          isValid: false,
-          expiresAt: null,
-          timeUntilExpiry: null,
-          refreshedAt: Date.now()
-        };
-      }
-
-      const now = Date.now() / 1000; // Convert to seconds
-      const expiresAt = session.expires_at || null;
-      const timeUntilExpiry = expiresAt ? Math.max(0, expiresAt - now) : null;
-
-      return {
-        isValid: true,
-        expiresAt: expiresAt ? expiresAt * 1000 : null, // Convert back to milliseconds
-        timeUntilExpiry: timeUntilExpiry ? timeUntilExpiry * 1000 : null, // Convert to milliseconds
-        refreshedAt: Date.now()
-      };
-    } catch (error) {
-      logger.error('Error checking session health', { error: (error as Error).message }, error as Error);
-      return {
-        isValid: false,
-        expiresAt: null,
-        timeUntilExpiry: null,
-        refreshedAt: Date.now()
-      };
-    }
-  }
-
-  /**
-   * Perform periodic health check
-   */
-  private async performHealthCheck(): Promise<void> {
-    try {
-      const health = await this.getSessionHealth();
-      this.lastHealthCheck = health.refreshedAt;
-
-      if (!health.isValid) {
-        this.stopMonitoring();
+        logger.debug('No active session found during health check');
         return;
       }
 
-      if (health.timeUntilExpiry) {
-        const minutesUntilExpiry = health.timeUntilExpiry / (1000 * 60);
+      // Check if session is expiring soon
+      const now = Math.floor(Date.now() / 1000);
+      const expiresAt = session.expires_at || 0;
+      const timeUntilExpiry = expiresAt - now;
 
-        // Auto-refresh token if close to expiry
-        if (minutesUntilExpiry <= this.config.autoRefreshThreshold) {
-          await this.refreshSession();
-        }
-        // Show warning if approaching expiry
-        else if (minutesUntilExpiry <= this.config.warningThreshold && !this.sessionWarningShown) {
-          this.showExpirationWarning(Math.ceil(minutesUntilExpiry));
-          this.sessionWarningShown = true;
-        }
-        // Reset warning flag if we're back to a safe time
-        else if (minutesUntilExpiry > this.config.warningThreshold) {
-          this.sessionWarningShown = false;
+      // If expiring within 10 minutes, show warning
+      if (timeUntilExpiry <= 600 && timeUntilExpiry > 300 && !this.sessionWarningShown) {
+        this.sessionWarningShown = true;
+        this.showSessionWarning(Math.floor(timeUntilExpiry / 60));
+      }
+
+      // If expiring within 5 minutes, attempt refresh
+      if (timeUntilExpiry <= 300) {
+        logger.debug('Session expiring soon, attempting refresh', { timeUntilExpiry });
+        const refreshed = await this.refreshSession();
+        
+        if (!refreshed) {
+          logger.warn('Failed to refresh session, user may need to re-authenticate');
         }
       }
+
     } catch (error) {
-      logger.error('Health check failed', { error: (error as Error).message }, error as Error);
+      logger.error('Session health check failed', { error: (error as Error).message }, error as Error);
     }
   }
 
   /**
-   * Manually refresh the session using enhanced API
+   * Manually refresh the session with debouncing and retry logic
    */
   async refreshSession(): Promise<boolean> {
+    // If refresh is already in progress, return the existing promise
+    if (this.refreshPromise) {
+      logger.debug('Refresh already in progress, waiting for completion');
+      return this.refreshPromise;
+    }
+
+    // Check minimum refresh interval to prevent too frequent requests
+    const now = Date.now();
+    if (now - this.lastRefreshTime < this.minRefreshInterval) {
+      logger.debug('Refresh rate limited, skipping');
+      return true; // Consider as success to prevent immediate retry
+    }
+
+    // Check maximum retry attempts
+    if (this.refreshAttempts >= this.maxRefreshAttempts) {
+      logger.warn('Maximum refresh attempts reached, resetting counter');
+      this.refreshAttempts = 0;
+      // Wait longer before allowing retries
+      this.lastRefreshTime = now + (5 * 60 * 1000); // 5 minute cooldown
+      return false;
+    }
+
+    // Create new refresh promise
+    this.refreshPromise = this.performRefresh();
+    
+    try {
+      const result = await this.refreshPromise;
+      this.lastRefreshTime = now;
+      
+      if (result) {
+        this.refreshAttempts = 0; // Reset on success
+      } else {
+        this.refreshAttempts++;
+      }
+      
+      return result;
+    } finally {
+      // Clear the promise after completion
+      this.refreshPromise = null;
+    }
+  }
+
+  /**
+   * Perform the actual refresh operation
+   */
+  private async performRefresh(): Promise<boolean> {
     try {
       // Use the new API endpoint for enhanced refresh functionality
       const result = await AuthAPI.refreshSession();
@@ -194,77 +205,88 @@ class SessionMonitorService {
   }
 
   /**
-   * Show session expiration warning to user (only for critical failures)
+   * Show session expiration warning to user
    */
-  private showExpirationWarning(minutesLeft: number): void {
-    // Silent operation - only log for debugging
-    logger.debug('Session expiration warning', { minutesLeft });
+  private showSessionWarning(minutesLeft: number) {
+    logger.info('Showing session expiration warning', { minutesLeft });
     
-    // Only show warning if auto-refresh has repeatedly failed
-    // This creates a better UX by not showing unnecessary notifications
+    // Create a user-friendly notification
+    if (typeof window !== 'undefined') {
+      // You could integrate with your toast system here
+      console.warn(`Session expires in ${minutesLeft} minutes. Please save your work.`);
+    }
   }
 
   /**
-   * Handle cross-tab session coordination
+   * Set up cross-tab session synchronization
    */
-  setupCrossTabSync(): void {
-    // Remove existing listeners to prevent duplicates
-    window.removeEventListener('storage', this.handleStorageEvent);
-    window.removeEventListener('focus', this.handleFocusEvent);
+  setupCrossTabSync() {
+    if (typeof window === 'undefined' || this.isDestroyed) return;
 
-    // Listen for storage events to sync logout across tabs
-    window.addEventListener('storage', this.handleStorageEvent);
-
-    // Listen for focus events to check session health when tab becomes active
-    window.addEventListener('focus', this.handleFocusEvent);
-  }
-
-  private handleStorageEvent = (event: StorageEvent) => {
-    if (event.key === 'supabase.auth.token') {
-      // If auth token was removed in another tab, refresh current tab
-      if (!event.newValue && event.oldValue) {
+    // Listen for auth changes in other tabs
+    window.addEventListener('storage', (e) => {
+      if (this.isDestroyed) return;
+      
+      if (e.key?.includes('supabase') && e.newValue === null) {
+        // Session was cleared in another tab
+        logger.info('Session cleared in another tab, syncing');
         window.location.reload();
       }
-    }
-  };
+    });
 
-  private handleFocusEvent = () => {
-    // Disabled focus-based health checks to prevent toast spam
-    // Health checks are now only done via the interval timer
-    logger.debug('Tab focus detected, but health check skipped to prevent spam');
-  };
-
-  /**
-   * Add security headers for session management
-   */
-  getSecurityHeaders(): Record<string, string> {
-    return {
-      'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY',
-      'X-XSS-Protection': '1; mode=block',
-      'Referrer-Policy': 'strict-origin-when-cross-origin',
-    };
+    // Listen for focus events to check session when tab becomes active
+    window.addEventListener('focus', () => {
+      if (this.isDestroyed) return;
+      
+      // Check session validity when tab regains focus
+      this.checkSessionHealth();
+    });
   }
 
   /**
-   * Update monitoring configuration
+   * Get current session status for UI components
    */
-  updateConfig(newConfig: Partial<SessionMonitorConfig>): void {
-    this.config = { ...this.config, ...newConfig };
-    
-    // Restart monitoring with new config
-    if (this.healthCheckInterval) {
-      this.stopMonitoring();
-      this.startMonitoring();
+  async getSessionStatus() {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error || !session) {
+        return { isValid: false, error: error?.message };
+      }
+
+      const now = Math.floor(Date.now() / 1000);
+      const expiresAt = session.expires_at || 0;
+      const timeUntilExpiry = expiresAt - now;
+
+      return {
+        isValid: true,
+        expiresAt: expiresAt * 1000,
+        timeUntilExpiry: timeUntilExpiry * 1000,
+        isExpiringSoon: timeUntilExpiry < 600, // Less than 10 minutes
+        needsRefresh: timeUntilExpiry < 300, // Less than 5 minutes
+        canRefresh: !this.refreshPromise && this.refreshAttempts < this.maxRefreshAttempts
+      };
+    } catch (error) {
+      logger.error('Failed to get session status', { error: (error as Error).message }, error as Error);
+      return { isValid: false, error: (error as Error).message };
     }
   }
 
   /**
-   * Get last health check timestamp
+   * Check if refresh is currently in progress
    */
-  getLastHealthCheck(): number {
-    return this.lastHealthCheck;
+  isRefreshing(): boolean {
+    return this.refreshPromise !== null;
+  }
+
+  /**
+   * Reset refresh attempts counter (useful for manual refresh triggers)
+   */
+  resetRefreshAttempts() {
+    this.refreshAttempts = 0;
+    logger.debug('Refresh attempts counter reset');
   }
 }
 
-export const sessionMonitor = SessionMonitorService.getInstance(); 
+// Create singleton instance
+export const sessionMonitor = new SessionMonitorService(); 

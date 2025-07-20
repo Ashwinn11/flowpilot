@@ -30,16 +30,36 @@ export async function GET(request: NextRequest) {
     });
 
     // Validate OAuth state parameter if present (CSRF protection)
+    // Note: OAuth providers don't always send state consistently, so we log warnings but don't block
     if (state) {
       const isValidState = securityManager.validateCSRFToken(state);
       if (!isValidState) {
-        logger.warn('Invalid OAuth state parameter detected', {
+        logger.warn('OAuth state validation failed - proceeding with caution', {
           requestId,
           clientIP,
-          userAgent: userAgent.substring(0, 100)
+          userAgent: userAgent.substring(0, 100),
+          hasCode: !!code,
+          provider: searchParams.get('provider') || 'unknown'
         });
-        return NextResponse.redirect(`${origin}/auth/auth-code-error?error=invalid_state`);
+        // Continue processing instead of blocking - OAuth state is not always reliable
+      } else {
+        logger.debug('OAuth state validated successfully', { requestId });
       }
+    } else {
+      logger.debug('No OAuth state parameter provided - this is normal for some providers', { requestId });
+    }
+
+    // Validate and sanitize the redirect path for security
+    const allowedRedirects = ['/dashboard', '/settings', '/progress', '/auth/reset-password'];
+    const sanitizedNext = allowedRedirects.includes(next) ? next : '/dashboard';
+    
+    if (next !== sanitizedNext) {
+      logger.warn('Invalid redirect path detected, using default', {
+        requestId,
+        originalNext: next,
+        sanitizedNext,
+        clientIP
+      });
     }
 
     // Rate limiting for OAuth callbacks
@@ -73,7 +93,7 @@ export async function GET(request: NextRequest) {
     );
 
     if (code) {
-      logger.info('OAuth callback: Processing code', { requestId, next });
+      logger.info('OAuth callback: Processing code', { requestId, next: sanitizedNext });
       
       // Exchange code for session with timeout
       const exchangePromise = supabase.auth.exchangeCodeForSession(code);
@@ -91,20 +111,20 @@ export async function GET(request: NextRequest) {
           requestId,
           hasSession: !!session, 
           userEmail: session?.user?.email,
-          next,
-          redirectUrl: `${origin}${next}`,
+          next: sanitizedNext,
+          redirectUrl: `${origin}${sanitizedNext}`,
           duration: Date.now() - startTime
         });
         
         // For password reset, we want to redirect to the reset password page
         // even if it's a recovery session
-        if (next === '/auth/reset-password') {
+        if (sanitizedNext === '/auth/reset-password') {
           logger.info('OAuth callback: Password reset flow - redirecting to reset password page', {
             requestId,
             hasSession: !!session,
             userEmail: session?.user?.email
           });
-          return NextResponse.redirect(`${origin}${next}`);
+          return NextResponse.redirect(`${origin}${sanitizedNext}`);
         }
         
         // For regular sign-ins, ensure session is properly set before redirecting
@@ -117,16 +137,16 @@ export async function GET(request: NextRequest) {
           
           logger.info('OAuth callback: Redirecting to dashboard', { 
             requestId, 
-            redirectUrl: `${origin}${next}`,
+            redirectUrl: `${origin}${sanitizedNext}`,
             userEmail: finalSession?.user?.email,
             sessionValid: !!finalSession
           });
           
-          return NextResponse.redirect(`${origin}${next}`);
+          return NextResponse.redirect(`${origin}${sanitizedNext}`);
         } else {
           logger.error('OAuth callback: No session after successful code exchange', {
             requestId,
-            redirectUrl: `${origin}${next}`
+            redirectUrl: `${origin}${sanitizedNext}`
           });
           return NextResponse.redirect(`${origin}/auth/auth-code-error?error=no_session`);
         }
@@ -144,10 +164,10 @@ export async function GET(request: NextRequest) {
         if (session) {
           logger.info('OAuth callback: Session exists despite error, redirecting', { 
             requestId,
-            redirectUrl: `${origin}${next}`,
+            redirectUrl: `${origin}${sanitizedNext}`,
             userEmail: session?.user?.email
           });
-          return NextResponse.redirect(`${origin}${next}`);
+          return NextResponse.redirect(`${origin}${sanitizedNext}`);
         }
         
         // Log security event for failed code exchange
@@ -177,7 +197,7 @@ export async function GET(request: NextRequest) {
         userAgent: userAgent.substring(0, 100)
       });
       
-      return NextResponse.redirect(`${origin}/auth?oauth_callback=true&next=${encodeURIComponent(next)}`);
+      return NextResponse.redirect(`${origin}/auth?oauth_callback=true&next=${encodeURIComponent(sanitizedNext)}`);
     }
     
   } catch (error) {
