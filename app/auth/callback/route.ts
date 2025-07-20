@@ -169,19 +169,15 @@ export async function GET(request: NextRequest) {
         url: request.url
       });
       
-      // Check if we have a session even without a code (might happen in some OAuth flows)
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        logger.info('OAuth callback: Session found without code, redirecting', { 
-          requestId,
-          redirectUrl: `${origin}${next}`,
-          userEmail: session?.user?.email
-        });
-        return NextResponse.redirect(`${origin}${next}`);
-      }
+      // For implicit flow, redirect to client-side handler
+      // The tokens are in the URL fragment and need to be processed by JavaScript
+      logger.info('OAuth callback: Redirecting to client-side handler for implicit flow processing', {
+        requestId,
+        clientIP,
+        userAgent: userAgent.substring(0, 100)
+      });
       
-      // No code and no session - redirect to auth-code-error
-      return NextResponse.redirect(`${origin}/auth/auth-code-error?error=no_code`);
+      return NextResponse.redirect(`${origin}/auth?oauth_callback=true&next=${encodeURIComponent(next)}`);
     }
     
   } catch (error) {

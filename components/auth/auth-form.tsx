@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,15 +9,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { GoogleIcon, MicrosoftIcon } from "@/components/ui/icons";
 import { Mail, Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
 import { AuthAPI } from "@/lib/auth-api";
 import { AuthValidator, AuthErrorMessages } from "@/lib/auth-validation";
+import { supabase } from "@/lib/supabase";
 
 export function AuthForm() {
-  const { user, signInWithGoogle, signInWithMicrosoft, signInWithEmail } = useAuth();
+  const { user, signInWithEmail, signInWithGoogle, signInWithMicrosoft, signUp } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,13 +30,70 @@ export function AuthForm() {
   const [showPasswordField, setShowPasswordField] = useState(false);
   const [showOAuthMessage, setShowOAuthMessage] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
+  
+  // Ref to prevent duplicate OAuth processing
+  const oAuthProcessedRef = useRef(false);
+  const userRedirectProcessedRef = useRef(false);
 
+  // Handle user authentication state changes
   useEffect(() => {
-    if (user) {
+    const isOAuthCallback = searchParams.get('oauth_callback') === 'true';
+    const nextUrl = searchParams.get('next') || '/dashboard';
+    
+    if (user && !userRedirectProcessedRef.current) {
+      userRedirectProcessedRef.current = true;
       console.log('AuthForm: User detected, redirecting to dashboard', user.email);
-      router.push('/dashboard');
+      
+      // Don't show welcome message here - let the dashboard handle it via session storage flags
+      // This prevents duplicate toasts during OAuth flow
+      
+      router.push(nextUrl);
     }
-  }, [user, router]);
+    
+    // Reset the ref when user is null (logged out)
+    if (!user) {
+      userRedirectProcessedRef.current = false;
+    }
+  }, [user, router, searchParams]);
+
+  // Handle OAuth callback processing (only when oauth_callback=true)
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const isOAuthCallback = searchParams.get('oauth_callback') === 'true';
+      const nextUrl = searchParams.get('next') || '/dashboard';
+      
+      if (isOAuthCallback && !user && !oAuthProcessedRef.current) {
+        oAuthProcessedRef.current = true;
+        console.log('AuthForm: Processing OAuth callback');
+        setLoading(true);
+        
+        try {
+          // Give Supabase a moment to process URL fragments and establish session
+          setTimeout(async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session && session.user) {
+              console.log('AuthForm: OAuth session found, auth context will handle redirect');
+              // Let the auth context handle the user state update and redirect
+              // Don't show toast here to prevent duplicates
+            } else {
+              console.log('AuthForm: No session after OAuth callback timeout');
+              toast.error('Authentication failed. Please try signing in again.');
+              setLoading(false);
+              oAuthProcessedRef.current = false; // Reset for retry
+            }
+          }, 1000); // Reduced timeout since auth context should handle this quickly
+          
+        } catch (error) {
+          console.error('AuthForm: OAuth callback processing error:', error);
+          toast.error('Authentication failed. Please try signing in again.');
+          setLoading(false);
+          oAuthProcessedRef.current = false; // Reset for retry
+        }
+      }
+    };
+
+    handleOAuthCallback();
+  }, [searchParams, user]);
 
   const handleSignInClick = async () => {
     if (!email) {
