@@ -10,9 +10,12 @@ import { useAuth } from '@/contexts/auth-context';
 
 interface SessionHealth {
   isValid: boolean;
-  expiresAt: number | null;
-  timeUntilExpiry: number | null;
-  refreshedAt: number;
+  expiresAt?: number;
+  timeUntilExpiry?: number;
+  isExpiringSoon?: boolean;
+  needsRefresh?: boolean;
+  canRefresh?: boolean;
+  error?: string;
 }
 
 export function SessionStatus() {
@@ -25,7 +28,7 @@ export function SessionStatus() {
     if (!user) return;
 
     const checkHealth = async () => {
-      const health = await sessionMonitor.getSessionHealth();
+      const health = await sessionMonitor.getSessionStatus();
       setSessionHealth(health);
       setLastCheck(Date.now());
     };
@@ -44,7 +47,7 @@ export function SessionStatus() {
     try {
       const success = await sessionMonitor.refreshSession();
       if (success) {
-        const health = await sessionMonitor.getSessionHealth();
+        const health = await sessionMonitor.getSessionStatus();
         setSessionHealth(health);
         setLastCheck(Date.now());
       }

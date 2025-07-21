@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { TaskCard } from "@/components/dashboard/task-card";
 import { AddTaskModal } from "@/components/dashboard/add-task-modal";
 import { TimelineView } from "@/components/dashboard/timeline-view";
-import { Plus, Target, Clock, CheckCircle } from "lucide-react";
+import { Plus, Target, Clock, CheckCircle, Calendar, Gift, MapPin } from "lucide-react";
 import { EndOfDayModal } from "@/components/dashboard/end-of-day-modal";
 import { useAuth } from "@/contexts/auth-context";
 import { TaskService } from "@/lib/tasks";
@@ -16,10 +16,19 @@ import { toast } from "sonner";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import type { Database } from "@/lib/supabase";
+import type { CalendarEvent } from "@/lib/calendar";
 
 type Task = Database['public']['Tables']['tasks']['Row'];
 
-export function DailyPlanner() {
+interface DailyPlannerProps {
+  calendarData?: {
+    events: CalendarEvent[];
+    tasks: CalendarEvent[];
+    birthdays: CalendarEvent[];
+  };
+}
+
+export function DailyPlanner({ calendarData }: DailyPlannerProps) {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -200,7 +209,7 @@ export function DailyPlanner() {
             onClick={() => setViewMode("timeline")}
           >
             <Clock className="w-4 h-4 mr-2" />
-            Timeline
+            Task Section
           </Button>
           <div>
             <Button onClick={() => setIsAddModalOpen(true)} className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white">
@@ -267,6 +276,169 @@ export function DailyPlanner() {
               </div>
             ))}
           </div>
+
+          {/* Calendar Data Section */}
+          {calendarData && (calendarData.events.length > 0 || calendarData.tasks.length > 0 || calendarData.birthdays.length > 0) && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Today's Calendar Items
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Events */}
+                {calendarData.events.length > 0 && (
+                  <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 hover:shadow-xl transition-all duration-300">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        Events ({calendarData.events.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {calendarData.events.slice(0, 3).map((event, index) => {
+                        const isToday = new Date(event.start.dateTime || event.start.date || '').toDateString() === new Date().toDateString();
+                        const isUrgent = event.summary?.toLowerCase().includes('urgent') || event.summary?.toLowerCase().includes('important');
+                        
+                        return (
+                          <div key={index} className={`text-sm p-3 rounded-lg border transition-all duration-200 ${
+                            isToday 
+                              ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' 
+                              : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700'
+                          } ${isUrgent ? 'ring-2 ring-red-200 dark:ring-red-800' : ''}`}>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <p className={`font-medium truncate ${isUrgent ? 'text-red-700 dark:text-red-300' : 'text-gray-900 dark:text-gray-100'}`}>
+                                  {event.summary}
+                                </p>
+                                <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                  <span>
+                                    {new Date(event.start.dateTime || event.start.date || '').toLocaleTimeString([], { 
+                                      hour: '2-digit', 
+                                      minute: '2-digit' 
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                              {isToday && (
+                                <Badge variant="outline" className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ml-2">
+                                  Today
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {calendarData.events.length > 3 && (
+                        <p className="text-xs text-blue-600 dark:text-blue-400 text-center py-2">
+                          +{calendarData.events.length - 3} more events
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Tasks */}
+                {calendarData.tasks.length > 0 && (
+                  <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 hover:shadow-xl transition-all duration-300">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300 flex items-center gap-2">
+                        <Target className="h-4 w-4" />
+                        Tasks ({calendarData.tasks.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {calendarData.tasks.slice(0, 3).map((task, index) => {
+                        const isToday = new Date(task.start.dateTime || task.start.date || '').toDateString() === new Date().toDateString();
+                        const isUrgent = task.summary?.toLowerCase().includes('urgent') || task.summary?.toLowerCase().includes('important');
+                        
+                        return (
+                          <div key={index} className={`text-sm p-3 rounded-lg border transition-all duration-200 ${
+                            isToday 
+                              ? 'bg-orange-100 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800' 
+                              : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700'
+                          } ${isUrgent ? 'ring-2 ring-red-200 dark:ring-red-800' : ''}`}>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <p className={`font-medium truncate ${isUrgent ? 'text-red-700 dark:text-red-300' : 'text-gray-900 dark:text-gray-100'}`}>
+                                  {task.summary}
+                                </p>
+                                <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                  <span>
+                                    {new Date(task.start.dateTime || task.start.date || '').toLocaleTimeString([], { 
+                                      hour: '2-digit', 
+                                      minute: '2-digit' 
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                              {isToday && (
+                                <Badge variant="outline" className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 ml-2">
+                                  Today
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {calendarData.tasks.length > 3 && (
+                        <p className="text-xs text-orange-600 dark:text-orange-400 text-center py-2">
+                          +{calendarData.tasks.length - 3} more tasks
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Birthdays */}
+                {calendarData.birthdays.length > 0 && (
+                  <Card className="border-0 shadow-lg bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 hover:shadow-xl transition-all duration-300">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-pink-700 dark:text-pink-300 flex items-center gap-2">
+                        <Gift className="h-4 w-4" />
+                        Birthdays ({calendarData.birthdays.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {calendarData.birthdays.slice(0, 3).map((birthday, index) => {
+                        const isToday = new Date(birthday.start.dateTime || birthday.start.date || '').toDateString() === new Date().toDateString();
+                        
+                        return (
+                          <div key={index} className={`text-sm p-3 rounded-lg border transition-all duration-200 ${
+                            isToday 
+                              ? 'bg-pink-100 dark:bg-pink-900/30 border-pink-200 dark:border-pink-800' 
+                              : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700'
+                          }`}>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate text-pink-700 dark:text-pink-300">
+                                  {birthday.summary}
+                                </p>
+                                <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                  <span>
+                                    {new Date(birthday.start.dateTime || birthday.start.date || '').toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                              {isToday && (
+                                <Badge variant="outline" className="text-xs bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 ml-2">
+                                  Today
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {calendarData.birthdays.length > 3 && (
+                        <p className="text-xs text-pink-600 dark:text-pink-400 text-center py-2">
+                          +{calendarData.birthdays.length - 3} more birthdays
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Main Content */}
           <AnimatePresence mode="wait">

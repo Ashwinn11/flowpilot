@@ -2,6 +2,7 @@
 
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DailyPlanner } from "@/components/dashboard/daily-planner";
+import { CalendarIntegration } from "@/components/dashboard/calendar-integration";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { PerformanceMonitor } from "@/components/dashboard/performance-monitor";
 import dynamic from "next/dynamic";
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "sonner";
+import { FreeTimeSlot, CalendarEvent } from "@/lib/calendar";
 
 // Lazy load the AI Assistant to improve initial page load
 const AIAssistant = dynamic(
@@ -129,6 +131,12 @@ export default function Dashboard() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
   const [welcomeMessageShown, setWelcomeMessageShown] = useState(false);
+  const [freeTimeSlots, setFreeTimeSlots] = useState<{ date: Date; freeSlots: FreeTimeSlot[] }[]>([]);
+  const [calendarData, setCalendarData] = useState<{
+    events: CalendarEvent[];
+    tasks: CalendarEvent[];
+    birthdays: CalendarEvent[];
+  }>({ events: [], tasks: [], birthdays: [] });
 
   useEffect(() => {
     if (!loading && profile) {
@@ -201,7 +209,21 @@ export default function Dashboard() {
         <div className="relative z-10">
           <DashboardHeader profile={profile} trialDaysLeft={trialDaysLeft} oauthInfo={getOAuthInfo()} />
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <DailyPlanner />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Main planner area */}
+              <div className="lg:col-span-2">
+                <DailyPlanner calendarData={calendarData} />
+              </div>
+              
+              {/* Calendar integration sidebar */}
+              <div className="lg:col-span-1">
+                <CalendarIntegration 
+                  userWorkHours={profile?.work_hours}
+                  onFreeTimeSlotsUpdate={setFreeTimeSlots}
+                  onCalendarDataUpdate={setCalendarData}
+                />
+              </div>
+            </div>
           </main>
         </div>
         <AIAssistant />

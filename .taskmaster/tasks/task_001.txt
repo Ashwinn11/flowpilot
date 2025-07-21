@@ -1,0 +1,11 @@
+# Task ID: 1
+# Title: Setup Project Repository
+# Status: pending
+# Dependencies: None
+# Priority: medium
+# Description: Initialize the project repository with the necessary structure and configurations for FlowPilot.
+# Details:
+Create a Git repository and set up the basic folder structure for frontend (Next.js) and backend (Edge Functions). Include a README file with project overview and setup instructions.
+
+# Test Strategy:
+Ensure the repository is accessible and properly structured by cloning it and verifying the folder hierarchy.

@@ -17,7 +17,7 @@ import { AuthValidator, AuthErrorMessages } from "@/lib/auth-validation";
 import { supabase } from "@/lib/supabase";
 
 export function AuthForm() {
-  const { user, signInWithEmail, signInWithGoogle, signInWithMicrosoft, signUp } = useAuth();
+  const { user, signInWithEmail, signInWithGoogle, signInWithMicrosoft, signUpWithEmail } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);

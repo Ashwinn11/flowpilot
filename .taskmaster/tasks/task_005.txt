@@ -1,0 +1,11 @@
+# Task ID: 5
+# Title: Develop Task Prioritization Engine
+# Status: pending
+# Dependencies: 4
+# Priority: medium
+# Description: Create an engine to prioritize tasks based on user-defined archetypes and LLM inference.
+# Details:
+Implement logic to categorize tasks into archetypes (urgent, deep work, etc.) and utilize LLM for automatic prioritization when user input is absent.
+
+# Test Strategy:
+Validate the prioritization engine by inputting various tasks and checking if they are categorized and prioritized correctly.

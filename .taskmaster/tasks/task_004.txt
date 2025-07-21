@@ -1,0 +1,11 @@
+# Task ID: 4
+# Title: Implement Task Ingestion Feature
+# Status: pending
+# Dependencies: 3
+# Priority: high
+# Description: Allow users to input tasks via text or voice using OpenAI's Whisper for transcription.
+# Details:
+Integrate OpenAI's Whisper API for voice-to-text functionality and create a structured task model to capture user input.
+
+# Test Strategy:
+Test task ingestion by inputting tasks both via text and voice, ensuring they are correctly structured and stored in the database.

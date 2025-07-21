@@ -1,0 +1,11 @@
+# Task ID: 8
+# Title: Create Chat Interface
+# Status: pending
+# Dependencies: 7
+# Priority: medium
+# Description: Develop a chat interface that allows users to interact with the planner using natural language queries.
+# Details:
+Integrate OpenAI's function calling capabilities to handle user queries and provide contextual responses based on task data.
+
+# Test Strategy:
+Test the chat interface with various queries to ensure it responds accurately and contextually to user requests.

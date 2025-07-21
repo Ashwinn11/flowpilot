@@ -1,0 +1,77 @@
+{
+	"meta": {
+		"generatedAt": "2025-07-21T01:56:55.161Z",
+		"tasksAnalyzed": 8,
+		"totalTasks": 10,
+		"analysisCount": 8,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": false
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Setup Project Repository",
+			"complexityScore": 3,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Define the folder structure for frontend and backend, and create a README file.",
+			"reasoning": "This task involves basic setup and configuration, which is straightforward but can benefit from clear organization."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Implement Task Ingestion Feature",
+			"complexityScore": 7,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Integrate OpenAI's Whisper API, create a task model, and implement input validation.",
+			"reasoning": "This task requires API integration and data modeling, which adds complexity due to potential edge cases in user input."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Develop Task Prioritization Engine",
+			"complexityScore": 6,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Implement archetype categorization, LLM integration, and testing for various input scenarios.",
+			"reasoning": "The task involves logic implementation and testing, which can be intricate depending on user-defined archetypes."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Build Daily Planner UI",
+			"complexityScore": 5,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Design UI components, integrate calendar events, implement task display logic, and conduct usability testing.",
+			"reasoning": "This task requires both design and implementation efforts, along with user testing to ensure usability."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Implement Adaptive Rescheduling Logic",
+			"complexityScore": 6,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Develop the retry queue, implement priority adjustment logic, and test rescheduling scenarios.",
+			"reasoning": "The complexity arises from the need to analyze user behavior and adjust task priorities dynamically."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Create Chat Interface",
+			"complexityScore": 7,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Integrate OpenAI's function calling, design the chat interface, and test various user queries.",
+			"reasoning": "This task involves integration with AI capabilities and requires careful design to handle user interactions effectively."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "Implement Analytics Dashboard",
+			"complexityScore": 7,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Design visual components, implement data fetching, create analytics logic, and validate data accuracy.",
+			"reasoning": "The task involves data visualization and analytics, which can be complex due to the need for accurate representation of user data."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Enable Offline Mode Functionality",
+			"complexityScore": 6,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Implement IndexedDB storage, create sync logic, and test offline functionality.",
+			"reasoning": "This task requires understanding of local storage mechanisms and ensuring data consistency, which adds to its complexity."
+		}
+	]
+}
