@@ -1,223 +1,158 @@
-Here's the detailed Product Requirements Document (PRD) for FlowPilot, using the structure you've outlined:
+# Product Requirements Document (PRD) – Unblock
+
+## Product Overview
+
+* **Product Name:** Unblock
+* **Platform:** Web application (mobile-friendly, desktop-first)
+* **Category:** Productivity, Focus Management, Personal Planning
+* **Target Users:** Knowledge workers, students, creators, neurodiverse individuals
+* **Primary Goal:** Convert scattered thoughts into actionable tasks and focused execution.
 
 ---
 
-## <context>
+## Problem Statement
 
-### # Overview
+Users struggle with:
 
-**FlowPilot** is an AI-based personal productivity planner designed to help users schedule, prioritize, and complete their tasks effectively. It intelligently integrates with users' calendars (Google and Microsoft), captures tasks through voice/text, and automatically organizes and reschedules tasks based on behavior, availability, and priority. It is ideal for busy professionals, freelancers, students, or anyone looking to regain control over their time. The value proposition lies in reducing mental fatigue, increasing daily efficiency, and adapting to the user’s productivity patterns.
-
----
-
-## <PRD>
-
-### # Core Features
-
-#### 1. Smart Task Ingestion
-
-* **What it does:** Allows users to input tasks via text or voice.
-* **Why it's important:** Lowers friction for adding tasks.
-* **How:** Voice-to-text via Whisper/OpenAI, transformed into structured tasks using -mini.
-
-#### 2. Calendar Integration
-
-* **What it does:** Connects with Google/Outlook calendars to import events and detect free time.
-* **Why:** Enables task auto-scheduling and a unified view.
-* **How:** OAuth scopes for `calendar.readonly`, event detection using time parsing logic.
-
-#### 3. Task Prioritization Engine
-
-* **What it does:** Prioritizes tasks based on archetypes (urgent, deep work, meetings, etc.).
-* **Why:** Ensures meaningful output and helps avoid burnout.
-* **How:** LLM-based inference if user doesn’t set priority manually.
-
-#### 4. Adaptive Rescheduling
-
-* **What it does:** Automatically reschedules missed tasks and adapts based on user behavior.
-* **Why:** Keeps productivity continuous without micromanagement.
-* **How:** Task "retry" queue and progressive priority bump.
-
-#### 5. Productive Hours Detection
-
-* **What it does:** Learns from actual task completion to infer peak productivity windows.
-* **Why:** Improves planning accuracy.
-* **How:** Tracks completion timestamps and skipped rates.
-
-#### 6. Daily Planner & Timeline
-
-* **What it does:** Provides a clean, daily view with time blocks.
-* **Why:** Keeps user focused on “today.”
-* **How:** Combines calendar + AI-filled gaps with UI filters.
-
-#### 7. Chat Interface
-
-* **What it does:** Allows natural queries like "When am I free next?" or "Suggest something to do now."
-* **Why:** Adds conversational UX.
-* **How:** Chat interface backed by OpenAI function calling with dynamic task/context memory.
-
-#### 8. Analytics (Mini)
-
-* **What it does:** Visuals on task completion, skipped tasks, best productivity hours.
-* **Why:** Feedback loop for improvement.
-* **How:** Dashboard with simple charts, local or server-side analytics.
-
-#### 9. Offline Mode (V2)
-
-* **What it does:** Enables offline task viewing and completion.
-* **Why:** Mobile-first and PWA-friendly.
-* **How:** IndexedDB/local storage with sync on re-connect.
-
-#### 10. Integration Layer (Slack, Notion) - V2
-
-* **What it does:** Push tasks into Slack or pull meeting notes from Notion.
-* **Why:** Meet user where they already work.
-* **How:** Webhooks and external API integrations.
+* Cluttered minds with unstructured thoughts
+* Overwhelm and decision fatigue
+* Difficulty starting tasks or knowing what to prioritize
+* Easy distraction during work
+* No automatic handling of incomplete tasks
+* Lack of insight into focus patterns and energy levels
 
 ---
 
-### # User Experience
+## Key Value Proposition
 
-#### User Personas
-
-* **Busy Professionals:** Want structured days and intelligent planning.
-* **Students:** Need help organizing tasks and maximizing study time.
-* **Freelancers:** Want self-discipline and better self-management.
-
-#### Key Flows
-
-1. **Signup/Login**
-
-   * OAuth with Google/Microsoft or email-password
-   * Prompt user for calendar connection (OAuth again)
-2. **Initial Setup**
-
-   * Ask: work hours, preferred start/end time, behavior (proactive/reactive)
-3. **Task Intake**
-
-   * Typed or voice (speech-to-task)
-   * Auto-filled from calendar
-4. **Task View**
-
-   * Weekly view of filled slots
-   * Highlight: priority, archetype, pending tasks
-5. **Task Completion**
-
-   * User marks complete
-   * Skipped tasks reflow automatically
-6. **Chat**
-
-   * "What should I do now?", "What’s my plan for today?"
-
-#### UI/UX Considerations
-
-* Clean UI inspired by **Linear**, **Notion**, **Motion**.
-* Y Combinator/Airbnb font and spacing theme.
-* Minimal animation, high contrast focus blocks.
-* "One Big Thing" mode to eliminate distractions.
+Unblock converts user thoughts into structured tasks, intelligently schedules them, and guides them through focused work sessions with distraction tracking and energy awareness. It helps users clear mental clutter, focus with intention, and complete more with less stress.
 
 ---
 
-### # Technical Architecture
+## Core Features
 
-#### System Components
+### 1. Thought Dump
 
-* **Frontend:** Next.js + Tailwind + Capacitor (PWA now, scalable to native)
-* **Backend:** Edge Functions via Vercel/Cloudflare
-* **Auth:** Supabase (Google/Microsoft OAuth)
-* **Database:** Supabase (Postgres)
-* **AI:** OpenAI API (GPT-4o-mini for reasoning + Whisper for transcription)
-* **Task Scheduler Engine:** Custom logic server-side
-* **Calendar Sync:** Google/Outlook APIs
-* **Payment:** Stripe for 1-week trial → paid plans
+* Input method: Free-form text entry
+* AI/NLP to extract tasks from dumped thoughts
+* Tags, categories, and linking support
 
-#### Data Models (Simplified)
+### 2. Task Structuring
 
-* `users`: profile, timezone, preferences
-* `user_integrations`: provider, access\_token, refresh\_token
-* `tasks`: title, start\_time, end\_time, archetype, priority, status
-* `task_logs`: completion timestamps, skipped counts
-* `schedules`: daily plan snapshots
+* AI parses thought dump and suggests tasks
+* Tasks include: title, description, priority, duration
+* Task breakdown for large items (subtask generation)
 
-#### APIs/Integrations
+### 3. Calendar Integration
 
-* Google Calendar API
-* Microsoft Graph API
-* OpenAI (Whisper, GPT)
-* Stripe Billing API
+* Google & Microsoft Calendar support
+* Sync free/busy time slots
+* Auto-scheduling based on availability
+* Smart rescheduling for missed tasks
 
-#### Infrastructure
+### 4. Focus Sessions
 
-* Vercel hosting
-* Supabase backend + Auth + Realtime
-* Cron job/Edge worker for daily reschedules
+* User starts a timed session for any task
+* Timer types: Pomodoro (25:5), Custom length, Open-ended
+* Tracks tab switches, idle time, interruptions
+* Distraction summary at session end
 
----
+### 5. Energy & Distraction Tracking
 
-### # Development Roadmap
+* User rates energy before and after a session (1–5 scale)
+* Logs tab switches and inactivity automatically
+* Optional manual distraction log
 
-#### MVP (Phase 1)
+### 6. Task Completion Loop
 
-* Login via Supabase (Google, Microsoft)
-* Task ingestion (text/voice)
-* Google Calendar integration (read)
-* AI-driven task prioritization
-* Manual task completion
-* Daily/weekly planner UI
-* Chat: “What should I do now?”
+* Tasks can be marked complete, skipped, or deferred
+* Incomplete tasks are automatically rescheduled
+* End-of-day summary of completed and rescheduled tasks
 
-#### Phase 2
+### 7. Reporting & Trends
 
-* Productive hours tracking
-* Missed task retry engine
-* Slack/Notion integrations
-* Offline mode (mobile + web sync)
-* Analytics dashboard
-
-#### Phase 3
-
-* Smart reminders
-* Cross-timezone task handling
-* Team planning (multi-user calendar sync)
+* Weekly stats: time focused, tasks completed
+* Energy curve and distraction heatmaps
+* Personalized suggestions: best focus hours, top distractors
 
 ---
 
-### # Logical Dependency Chain
+## User Journey Workflow
 
-1. Auth system and calendar connection
-2. Task ingestion (manual + calendar sync)
-3. Daily planner UI
-4. Rescheduling engine
-5. Productivity insights
-6. Chat interface
-7. Offline support + integrations
+1. **Sign Up / Login**
+2. **Landing Page** → Prompt to dump thoughts
+3. **Thought Dump Page** → NLP task extraction
+4. **Task Review** → User confirms tasks
+5. **Calendar Sync** → Auto-scheduling
+6. **Focus Session Page** → Start timer, track focus
+7. **Session End** → Mark task complete, rate energy, log distractions
+8. **Daily Wrap-Up** → Review what was done, reschedule leftovers
+
+---
+
+## Tech Stack
+
+* **Frontend:** Next.js 15, TailwindCSS, shadcn/ui
+* **Backend:** Supabase (PostgreSQL, Auth, Edge Functions, RLS)
+* **Calendar API:** Google Calendar API, Microsoft Graph
+* **AI Processing:** OpenAI for task parsing and summarization
+* **Analytics:** Supabase logs or Posthog (optional)
 
 ---
 
-### # Risks and Mitigations
+## Supabase Schema (Key Tables)
 
-#### 1. Calendar Conflicts
-
-* Detect overlaps, highlight collisions visually.
-
-#### 2. OAuth Confusion
-
-* Edge case: same email used for different providers → distinct token linkage required.
-
-#### 3. Token Expiry
-
-* Implement robust token refresh handling (Google/Microsoft offline access).
-
-#### 4. Cost Overruns (OpenAI/API usage)
-
-* Use GPT-4o-mini for non-critical LLM tasks.
-* Use cache and chunking for task analysis.
-
-#### 5. User Drop-off Post Trial
-
-* Use onboarding flows and nudges to ensure conversion during free trial.
+* `users`
+* `thoughts`
+* `tasks`
+* `focus_sessions`
+* `distractions`
+* `energy_logs`
+* `calendar_tokens`
 
 ---
+
+## Differentiators
+
+* AI-first task extraction (from thoughts)
+* Focus sessions with distraction + energy tracking
+* Smart rescheduling of missed tasks
+* Insight-driven interface, not just to-do lists
+
+---
+
+## KPIs
+
+* % of tasks completed on time
+* Number of daily/weekly focus sessions
+* Average energy rating
+* Weekly distraction count
+* Retention rate (weekly active users)
+
+---
+
+## Future Enhancements
+
+* Native mobile app (iOS/Android)
+* Voice-based input for thought dump
+* AI planner assistant (chat-based)
+* Co-working mode (virtual accountability)
+* Smart break coaching (movement, hydration reminders)
+
+---
+
+## Marketing CTA
+
+* **Tagline:** Clear your mind. Focus your energy. Finish what matters.
+* **Primary Button:** “Unblock My Day”
+
+---
+
+## Risks & Mitigation
+
+* **Calendar Overwrites:** Explicit permission-based syncing only
+* **User Burnout:** Progressive onboarding and session limits
+* **Privacy Concerns:** RLS policies, encryption, transparency on data use
 
 ### # Appendix
 
@@ -233,4 +168,4 @@ Here's the detailed Product Requirements Document (PRD) for FlowPilot, using the
 
 ---
 
-Would you like me to generate this in a downloadable markdown/PDF version or integrate it directly with your project folder (via cursor or GitHub)?
+

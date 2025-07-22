@@ -32,10 +32,10 @@ export async function POST(request: NextRequest) {
 
     // Get the user's calendar integration
     const { data: integration, error: fetchError } = await supabaseAdmin
-      .from('user_integrations')
+      .from('calendar_tokens')
       .select('*')
       .eq('user_id', user.id)
-      .eq('provider', 'google_calendar')
+      .eq('provider', 'google')
       .single();
 
     if (fetchError || !integration) {
@@ -86,14 +86,14 @@ export async function POST(request: NextRequest) {
 
     // Update the integration in the database
     const { error: updateError } = await supabaseAdmin
-      .from('user_integrations')
+      .from('calendar_tokens')
       .update({
         access_token: tokenData.access_token,
         expires_at: expiresAt.toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', user.id)
-      .eq('provider', 'google_calendar');
+      .eq('provider', 'google');
 
     if (updateError) {
       logger.error('Failed to update refreshed calendar token', { error: updateError.message });

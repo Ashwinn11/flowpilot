@@ -2,211 +2,127 @@
   "master": {
     "tasks": [
       {
-        "id": 1,
+        "id": 11,
         "title": "Setup Project Repository",
-        "description": "Initialize the project repository with the necessary structure and configurations for FlowPilot.",
-        "details": "Create a Git repository and set up the basic folder structure for frontend (Next.js) and backend (Edge Functions). Include a README file with project overview and setup instructions.",
-        "testStrategy": "Ensure the repository is accessible and properly structured by cloning it and verifying the folder hierarchy.",
+        "description": "Initialize the project repository for Unblock using Git and create the initial folder structure for frontend and backend.",
+        "details": "Create a Git repository on GitHub. Set up the folder structure: /frontend, /backend, and /docs. Initialize package.json in both frontend and backend directories using npm init.",
+        "testStrategy": "Verify repository creation and folder structure by cloning the repo and checking the directory layout.",
         "priority": "medium",
         "dependencies": [],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 2,
-        "title": "Implement Authentication System",
-        "description": "Set up user authentication using Supabase for Google and Microsoft OAuth.",
-        "details": "Integrate Supabase for user authentication, configure OAuth scopes, and handle user sessions. Create endpoints for login and token management.",
-        "testStrategy": "Test the authentication flow by logging in with both Google and Microsoft accounts, ensuring tokens are correctly issued and stored.",
+        "id": 12,
+        "title": "Implement User Authentication",
+        "description": "Set up user authentication using Supabase for user registration and login functionality.",
+        "details": "Integrate Supabase Auth in the backend. Create API endpoints for user registration and login. Use JWT for session management.",
+        "testStrategy": "Test user registration and login flows, ensuring users can create accounts and log in successfully.",
         "priority": "high",
         "dependencies": [],
         "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Integrate Google OAuth",
-            "description": "Set up Google OAuth integration for user authentication.",
-            "dependencies": [],
-            "details": "Configure the Supabase project to enable Google OAuth, including setting up the necessary credentials and redirect URIs.",
-            "status": "done",
-            "testStrategy": "Test the Google login flow to ensure users can authenticate and receive valid tokens."
-          },
-          {
-            "id": 2,
-            "title": "Integrate Microsoft OAuth",
-            "description": "Set up Microsoft OAuth integration for user authentication.",
-            "dependencies": [],
-            "details": "Configure the Supabase project to enable Microsoft OAuth, including setting up the necessary credentials and redirect URIs.",
-            "status": "done",
-            "testStrategy": "Test the Microsoft login flow to ensure users can authenticate and receive valid tokens."
-          },
-          {
-            "id": 3,
-            "title": "Session Management",
-            "description": "Implement session management for authenticated users.",
-            "dependencies": [],
-            "details": "Create mechanisms to handle user sessions, including storing tokens and managing session expiration.\n<info added on 2025-07-17T18:14:40.649Z>\nCurrent Session Management Analysis:\n\n✅ ALREADY WELL IMPLEMENTED:\n1. Supabase Client Configuration: Proper setup with autoRefreshToken: true, persistSession: true, and detectSessionInUrl: true\n2. Auth State Management: Context properly manages user state with cleanup and memory leak prevention\n3. Session Persistence: Automatic session restoration on page reload via getSession()\n4. Real-time Auth Listening: onAuthStateChange properly handles sign-in/sign-out events\n5. Background Profile Creation: User profiles created automatically on sign-in\n6. Protected Routes: Implemented with loading states and proper redirects\n\n🔧 AREAS FOR ENHANCEMENT:\n1. Token Storage Security: Currently using browser default storage - could enhance with HttpOnly cookies\n2. Session Expiration Handling: Could add explicit session timeout warnings\n3. Multi-tab Session Sync: Could improve coordination across browser tabs\n4. Session Health Monitoring: Could add periodic session validation\n\n🎯 IMPLEMENTATION PLAN:\nSince the current implementation is already robust and follows Supabase best practices, I'll focus on:\n1. Adding session health monitoring\n2. Improving session expiration handling\n3. Adding session security headers\n4. Enhancing multi-tab session coordination\n</info added on 2025-07-17T18:14:40.649Z>\n<info added on 2025-07-17T18:18:44.614Z>\n✅ SESSION MANAGEMENT ENHANCEMENTS COMPLETED:\n\n🔧 IMPLEMENTED FEATURES:\n\n1. **Session Health Monitoring** (`lib/session-monitor.ts`):\n   - Periodic session health checks every 5 minutes\n   - Automatic token refresh when approaching expiry (5 min threshold)\n   - User warnings when session expires in 10 minutes\n   - Manual session refresh capability\n   - Session validity monitoring\n\n2. **Enhanced Security Headers** (`next.config.js`):\n   - Added security headers: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection\n   - Implemented Referrer-Policy and Permissions-Policy\n   - Enhanced protection against common web vulnerabilities\n\n3. **Cross-Tab Session Coordination**:\n   - Storage event listeners for logout sync across tabs\n   - Focus event handlers for session validation when tab becomes active\n   - Automatic page refresh when session invalidated in another tab\n\n4. **Session Status UI Component** (`components/auth/session-status.tsx`):\n   - Real-time session status display in dashboard header\n   - Visual indicators for session health (Active/Warning/Expiring)\n   - Time until expiry display\n   - Manual refresh button with loading state\n   - Tooltips with detailed session information\n\n5. **Integration with Auth Context**:\n   - Automatic session monitoring startup on sign-in\n   - Cleanup on sign-out\n   - Cross-tab sync setup for authenticated users\n\n🎯 TESTING READY:\n- Session persistence across page reloads ✅\n- Automatic token refresh ✅  \n- Session expiration warnings ✅\n- Cross-tab logout coordination ✅\n- Security headers implementation ✅\n- Manual session refresh ✅\n\nThe session management system is now robust, secure, and user-friendly with comprehensive monitoring and automatic maintenance.\n</info added on 2025-07-17T18:18:44.614Z>",
-            "status": "done",
-            "testStrategy": "Verify that user sessions persist correctly and expire as expected after a set duration."
-          },
-          {
-            "id": 4,
-            "title": "Create Authentication Endpoints",
-            "description": "Develop endpoints for login and token management.",
-            "dependencies": [],
-            "details": "Implement API endpoints for user login, token issuance, and token refresh functionalities.\n<info added on 2025-07-17T18:29:15.749Z>\nAUTHENTICATION ENDPOINTS IMPLEMENTATION COMPLETED:\n\nIMPLEMENTED API ENDPOINTS:\n\n1. Session Validation Endpoint (`/api/auth/session` - GET):\n   - Enhanced session health monitoring with expiration tracking\n   - Returns detailed user and session information\n   - Provides session timing data (expires_at, time_until_expiry)\n   - Includes user profile data and provider information\n   - Proper error handling with structured responses\n\n2. Token Refresh Endpoint (`/api/auth/refresh` - POST):\n   - Intelligent refresh logic (only refreshes when needed)\n   - Checks if session has >15 minutes remaining before refreshing\n   - Enhanced error handling with `requiresLogin` flag\n   - Returns detailed refresh status and session timing\n   - Fallback protection for edge cases\n\n3. User Profile Management Endpoint (`/api/auth/user` - GET/PATCH):\n   - GET: Retrieve comprehensive user profile data\n   - PATCH: Update user profile (name, timezone, workHours, email)\n   - Input validation for email format and timezone\n   - Synchronizes updates between auth metadata and profile database\n   - Handles both OAuth and email/password users\n\n4. Enhanced Logout Endpoint (`/api/auth/logout` - POST):\n   - Comprehensive session cleanup\n   - Cookie deletion for all auth-related cookies  \n   - Proper cache headers to prevent caching\n   - Enhanced error handling and user feedback\n\nSUPPORTING INFRASTRUCTURE:\n\n5. AuthAPI Client Service (`lib/auth-api.ts`):\n   - TypeScript client for all authentication endpoints\n   - Integrated toast notifications for user feedback\n   - Comprehensive error handling and retry logic\n   - Session health monitoring utilities\n\n6. Enhanced Session Monitor Integration:\n   - Updated to use new API endpoints with fallback to Supabase\n   - Improved refresh logic with better error handling\n   - Enhanced user feedback and session state management\n\nSECURITY ENHANCEMENTS:\n- All endpoints use @supabase/ssr for secure server-side operations\n- Proper input validation and sanitization\n- Structured error responses that don't leak sensitive information\n- CORS and caching headers for security\n- Rate limiting considerations built into the design\n\nTESTING VERIFICATION:\n- Session endpoint tested: Returns 401 for unauthenticated requests\n- Build compilation successful with new endpoints\n- TypeScript types properly defined\n- Integration with existing auth context\n\nThe authentication endpoints now provide a complete API layer that enhances Supabase's built-in authentication with additional functionality for session management, user profile operations, and enhanced security features.\n</info added on 2025-07-17T18:29:15.749Z>\n<info added on 2025-07-17T18:31:33.605Z>\n🔧 CRITICAL FIX APPLIED - Next.js 15 Compatibility:\n\nIssue Identified:\n- Next.js 15 requires `cookies()` to be awaited before use\n- All authentication endpoints were throwing async cookies errors\n\nFix Applied:\n- Updated all 4 authentication endpoints to use `await cookies()`\n- Fixed `/api/auth/session`, `/api/auth/refresh`, `/api/auth/user`, and `/api/auth/logout`\n- Changed `const cookieStore = cookies()` to `const cookieStore = await cookies()`\n\nVerification Completed:\n- ✅ Build compilation successful \n- ✅ Session endpoint test: Returns proper 401 response without errors\n- ✅ No more async cookies warnings in terminal\n- ✅ All endpoints now compatible with Next.js 15\n\nFinal Status:\nAuthentication endpoints are now fully functional and production-ready with proper Next.js 15 async compatibility.\n</info added on 2025-07-17T18:31:33.605Z>",
-            "status": "done",
-            "testStrategy": "Test the endpoints to ensure they respond correctly to login requests and manage tokens properly."
-          },
-          {
-            "id": 5,
-            "title": "Error Handling and Validation",
-            "description": "Implement error handling and input validation for the authentication process.",
-            "dependencies": [],
-            "details": "Ensure that all authentication processes include proper error handling and user feedback for invalid inputs or failed logins.\n<info added on 2025-07-17T18:40:31.009Z>\nThe authentication system now has enterprise-grade error handling and validation with comprehensive input sanitization, rate limiting, and user-friendly error recovery mechanisms. All security best practices for 2024 have been implemented.\n</info added on 2025-07-17T18:40:31.009Z>",
-            "status": "done",
-            "testStrategy": "Simulate various error scenarios to verify that appropriate error messages are returned to the user."
-          }
-        ]
+        "subtasks": []
       },
       {
-        "id": 3,
-        "title": "Integrate Google Calendar API",
-        "description": "Connect the application with Google Calendar to import events and detect free time.",
-        "details": "Use OAuth scopes for `calendar.readonly` to access user calendars. Implement event detection logic to identify free time slots.\n<info added on 2025-07-20T03:53:13.659Z>\nIntegrating the Google Calendar API with OAuth 2.0 in a Next.js application involves several steps, particularly when focusing on the `calendar.readonly` scope for event fetching and free time detection algorithms. Best practices include setting up Google API credentials, implementing the OAuth flow using the Supabase client, fetching events securely, and developing a robust free time detection algorithm that considers user-defined work hours and handles edge cases such as overlapping events and different time zones. Testing should cover authentication, event fetching, and free time detection to ensure a seamless user experience.\n</info added on 2025-07-20T03:53:13.659Z>\n<info added on 2025-07-20T03:58:32.263Z>\nGoogle Calendar API integration implementation completed with comprehensive OAuth flow, event fetching, and free time detection:\n\nIMPLEMENTED FEATURES:\n\n1. **Calendar Service Module** (`lib/calendar.ts`):\n   - Comprehensive CalendarService class with OAuth token management\n   - Google Calendar API integration with calendar.readonly scope\n   - Automatic token refresh handling for expired tokens\n   - Event fetching with pagination support (up to 250 events)\n   - Advanced free time detection algorithm that respects work hours and filters cancelled/transparent events\n   - Support for multi-day free time analysis (7-day default)\n   - Configurable minimum slot duration (30 minutes default)\n\n2. **OAuth Callback Handler** (`app/api/auth/calendar/callback/route.ts`):\n   - Secure authorization code exchange for access/refresh tokens\n   - Comprehensive error handling with user-friendly redirects\n   - Token storage in existing user_integrations table\n   - Integration verification with test API call\n   - Proper state parameter validation for security\n\n3. **Calendar Integration UI Component** (`components/dashboard/calendar-integration.tsx`):\n   - Modern React component with comprehensive state management\n   - OAuth connection flow with loading states and error handling\n   - Real-time free time slot display with formatted time/date\n   - Manual refresh capability for updated calendar data\n   - Toast notifications for user feedback (using sonner)\n   - Responsive design with proper loading and error states\n   - Integration status indicators and badges\n\n4. **Dashboard Integration**:\n   - Added Calendar component to main dashboard in responsive grid layout\n   - Calendar integration positioned as sidebar component (1/3 width on large screens)\n   - Proper state management for free time slots data sharing\n   - User work hours integration from existing profile system\n\nTECHNICAL IMPLEMENTATION:\n\n- **OAuth Flow**: Separate calendar-specific OAuth that requests calendar.readonly scope\n- **Token Management**: Secure storage in existing user_integrations table with automatic refresh\n- **Free Time Algorithm**: Sophisticated logic that handles overlapping events, work hour boundaries, and edge cases\n- **Error Handling**: Comprehensive error handling at all levels with user-friendly messages\n- **Type Safety**: Full TypeScript implementation with proper interfaces for all calendar data\n- **Performance**: Efficient API calls with caching and minimal re-renders\n\nTESTING VERIFICATION:\n- ✅ Component compiles without TypeScript errors\n- ✅ OAuth callback handler properly structured \n- ✅ Calendar service integrates with existing Supabase infrastructure\n- ✅ Dashboard layout updated with proper responsive grid\n- ✅ Toast notifications use correct sonner API\n- ✅ All imports and dependencies resolved\n\nThe implementation is production-ready and follows all security best practices for OAuth flows, including proper state validation, secure token storage, and comprehensive error handling.\n</info added on 2025-07-20T03:58:32.263Z>",
-        "testStrategy": "Verify calendar integration by fetching events and checking for free time slots, ensuring the data is displayed correctly in the application.",
+        "id": 13,
+        "title": "Develop Thought Dump Feature",
+        "description": "Create the Thought Dump page where users can input free-form text to extract tasks.",
+        "details": "Implement a text area for input and a submit button. Use OpenAI API to process the input and extract tasks. Display suggested tasks to the user.",
+        "testStrategy": "Input various text samples and verify that tasks are extracted correctly and displayed.",
         "priority": "high",
         "dependencies": [
-          2
+          12
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Task Structuring Logic",
+        "description": "Implement the logic to structure tasks from the thought dump, including title, description, priority, and duration.",
+        "details": "Create a function that takes the extracted tasks and structures them into the required format. Use AI/NLP for task breakdown and subtask generation.",
+        "testStrategy": "Test with different thought dumps to ensure tasks are structured correctly and subtasks are generated as needed.",
+        "priority": "high",
+        "dependencies": [
+          13
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 15,
+        "title": "Integrate Calendar APIs",
+        "description": "Set up integration with Google Calendar and Microsoft Graph for syncing user calendars.",
+        "details": "Implement OAuth2 for both Google and Microsoft Calendar APIs. Create endpoints to fetch and sync free/busy time slots.",
+        "testStrategy": "Test calendar integration by syncing events and checking for correct free/busy status.",
+        "priority": "medium",
+        "dependencies": [
+          12
         ],
         "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Polish Calendar Events and Tasks Presentation",
-            "description": "Enhance the visual presentation and user experience of calendar events and tasks in the dashboard",
-            "details": "Improve the UI presentation of calendar data including:\n\n1. Better visual hierarchy and styling for calendar items\n2. Improved event/task categorization and filtering  \n3. Enhanced time display and formatting\n4. Better integration with the daily planner workflow\n5. More intuitive calendar data presentation\n6. Improved responsive design for calendar items\n7. Better visual indicators for different event types\n8. Enhanced user experience for calendar data interaction\n\nFocus on making the calendar integration more polished and user-friendly while maintaining all existing functionality.\n<info added on 2025-07-21T01:53:12.548Z>\nEnhanced calendar events and tasks presentation with the following improvements:\n\n1. Enhanced Visual Design: \n   - Added gradient backgrounds and improved card styling\n   - Better color coding for different event types (events, tasks, birthdays)\n   - Improved hover effects and transitions\n   - Enhanced dark mode support\n\n2. Smart Event Categorization:\n   - Added intelligent event type detection based on event summary\n   - Implemented priority detection (high, medium, low) based on keywords\n   - Added appropriate icons for different event types (Video, Phone, Coffee, Briefcase, Heart, Star)\n\n3. Improved Time and Date Formatting:\n   - Enhanced time display with better formatting\n   - Smart date formatting showing \"Today\", \"Tomorrow\", or formatted dates\n   - Better handling of all-day events\n\n4. Enhanced User Experience:\n   - Added priority filtering for events\n   - Visual indicators for urgent/important events with ring styling\n   - Better responsive design and spacing\n   - Improved accessibility with better contrast\n\n5. Better Integration:\n   - Enhanced calendar data presentation in the daily planner\n   - Improved visual hierarchy and information density\n   - Better integration between calendar sidebar and main planner\n\n6. Technical Improvements:\n   - Fixed TypeScript errors\n   - Improved component structure and reusability\n   - Better state management for filtering and display\n\nThe calendar integration now provides a much more polished and user-friendly experience with better visual hierarchy, smart categorization, and enhanced usability.\n</info added on 2025-07-21T01:53:12.548Z>",
-            "status": "done",
-            "dependencies": [],
-            "parentTaskId": 3
-          }
-        ]
+        "subtasks": []
       },
       {
-        "id": 4,
-        "title": "Implement Task Ingestion Feature",
-        "description": "Allow users to input tasks via text or voice using OpenAI's Whisper for transcription.",
-        "details": "Integrate OpenAI's Whisper API for voice-to-text functionality and create a structured task model to capture user input.",
-        "testStrategy": "Test task ingestion by inputting tasks both via text and voice, ensuring they are correctly structured and stored in the database.",
+        "id": 16,
+        "title": "Focus Session Timer Implementation",
+        "description": "Develop the focus session timer functionality, allowing users to start timed sessions for tasks.",
+        "details": "Implement a timer component that supports Pomodoro and custom lengths. Track session duration and interruptions.",
+        "testStrategy": "Run multiple focus sessions and verify that the timer functions correctly and logs interruptions.",
         "priority": "high",
         "dependencies": [
-          3
-        ],
-        "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Integrate OpenAI's Whisper API for Voice-to-Text",
-            "description": "Implement the integration of OpenAI's Whisper API to enable voice input transcription into text. This will allow users to input tasks using voice commands.",
-            "dependencies": [],
-            "details": "Set up the Whisper API client in your application. Create a function that captures audio input from the user, sends it to the Whisper API, and receives the transcribed text. Ensure to handle API authentication and manage audio recording permissions.",
-            "status": "pending",
-            "testStrategy": "Test the voice input by recording various phrases and verifying that the transcriptions are accurate and match the spoken input."
-          },
-          {
-            "id": 2,
-            "title": "Create a Structured Task Model",
-            "description": "Develop a robust data structure to capture user input for tasks, ensuring it accommodates both text and voice inputs.",
-            "dependencies": [],
-            "details": "Define a task model that includes fields such as task ID, title, description, creation date, and status. Implement this model in your database schema and ensure it can handle inputs from both text and voice sources. Create functions to save and retrieve tasks from the database.",
-            "status": "pending",
-            "testStrategy": "Validate the task model by creating tasks through both text and voice inputs, ensuring they are stored correctly in the database and can be retrieved without errors."
-          },
-          {
-            "id": 3,
-            "title": "Implement Input Validation and Error Handling",
-            "description": "Ensure that all user inputs, whether from text or voice, are validated and that appropriate error handling is in place.",
-            "dependencies": [],
-            "details": "Create validation rules for the task inputs, such as checking for empty fields, character limits, and acceptable formats. Implement error handling to provide user feedback in case of invalid inputs. Ensure that the application gracefully handles any errors from the Whisper API or database operations.",
-            "status": "pending",
-            "testStrategy": "Test the input validation by attempting to submit invalid task data and verifying that the application responds with appropriate error messages."
-          }
-        ]
-      },
-      {
-        "id": 5,
-        "title": "Develop Task Prioritization Engine",
-        "description": "Create an engine to prioritize tasks based on user-defined archetypes and LLM inference.",
-        "details": "Implement logic to categorize tasks into archetypes (urgent, deep work, etc.) and utilize LLM for automatic prioritization when user input is absent.",
-        "testStrategy": "Validate the prioritization engine by inputting various tasks and checking if they are categorized and prioritized correctly.",
-        "priority": "medium",
-        "dependencies": [
-          4
+          14
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 6,
-        "title": "Build Daily Planner UI",
-        "description": "Design and implement a daily planner interface that displays tasks in time blocks.",
-        "details": "Use Next.js and Tailwind CSS to create a clean UI for the daily planner, integrating calendar events and AI-generated tasks.",
-        "testStrategy": "Conduct usability testing to ensure the planner is intuitive and displays tasks accurately, including time blocks and priorities.",
+        "id": 17,
+        "title": "Energy & Distraction Tracking",
+        "description": "Create functionality for users to rate their energy levels and log distractions during focus sessions.",
+        "details": "Add UI elements for energy rating (1-5 scale) and distraction logging. Store this data in the energy_logs and distractions tables.",
+        "testStrategy": "Conduct focus sessions and ensure energy ratings and distractions are logged accurately.",
         "priority": "medium",
         "dependencies": [
-          5
+          16
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 7,
-        "title": "Implement Adaptive Rescheduling Logic",
-        "description": "Create a system to automatically reschedule missed tasks based on user behavior.",
-        "details": "Develop a task retry queue that adjusts task priorities based on completion patterns and user behavior.",
-        "testStrategy": "Simulate missed tasks and verify that they are rescheduled correctly, with appropriate priority adjustments reflected in the planner.",
-        "priority": "medium",
+        "id": 18,
+        "title": "Task Completion Loop",
+        "description": "Implement the logic for marking tasks as complete, skipped, or deferred, and rescheduling incomplete tasks.",
+        "details": "Create functions to update task status and automatically reschedule incomplete tasks based on user preferences.",
+        "testStrategy": "Test task completion scenarios to ensure tasks are marked and rescheduled correctly.",
+        "priority": "high",
         "dependencies": [
-          6
+          17
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 8,
-        "title": "Create Chat Interface",
-        "description": "Develop a chat interface that allows users to interact with the planner using natural language queries.",
-        "details": "Integrate OpenAI's function calling capabilities to handle user queries and provide contextual responses based on task data.",
-        "testStrategy": "Test the chat interface with various queries to ensure it responds accurately and contextually to user requests.",
+        "id": 19,
+        "title": "Reporting & Trends Dashboard",
+        "description": "Develop a dashboard to display weekly stats, energy curves, and distraction heatmaps.",
+        "details": "Create a reporting interface that aggregates data from tasks, focus sessions, and energy logs to provide insights to users.",
+        "testStrategy": "Verify that the dashboard displays accurate statistics and trends based on user data.",
         "priority": "medium",
         "dependencies": [
-          7
+          18
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 9,
-        "title": "Implement Analytics Dashboard",
-        "description": "Build a dashboard to visualize task completion rates, skipped tasks, and productivity insights.",
-        "details": "Create visual representations of user data using charts and graphs, leveraging local or server-side analytics.",
-        "testStrategy": "Validate the analytics dashboard by comparing displayed data against raw task logs to ensure accuracy in visualizations.",
+        "id": 20,
+        "title": "User Interface Design and Styling",
+        "description": "Implement the UI using Next.js and TailwindCSS, ensuring a modern and responsive design.",
+        "details": "Design and implement the UI for all pages, including Thought Dump, Task Review, Focus Session, and Reporting, using TailwindCSS for styling.",
+        "testStrategy": "Conduct usability testing to ensure the UI is intuitive and responsive across devices.",
         "priority": "medium",
         "dependencies": [
-          8
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 10,
-        "title": "Enable Offline Mode Functionality",
-        "description": "Implement offline support for task viewing and completion using IndexedDB/local storage.",
-        "details": "Utilize IndexedDB to store tasks locally and sync changes when the user reconnects to the internet.",
-        "testStrategy": "Test offline functionality by disconnecting from the internet, completing tasks, and verifying that changes sync correctly upon reconnection.",
-        "priority": "medium",
-        "dependencies": [
-          9
+          11
         ],
         "status": "pending",
         "subtasks": []
@@ -214,7 +130,7 @@
     ],
     "metadata": {
       "created": "2025-07-17T00:25:05.040Z",
-      "updated": "2025-07-21T01:53:17.638Z",
+      "updated": "2025-07-22T09:32:36.184Z",
       "description": "Tasks for master context"
     }
   }

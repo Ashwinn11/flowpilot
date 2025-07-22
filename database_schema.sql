@@ -1,36 +1,42 @@
--- user_profiles table
-create table if not exists user_profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  email text unique not null,
+-- Drop unnecessary tables if they exist
+DROP TABLE IF EXISTS user_integrations CASCADE;
+DROP TABLE IF EXISTS task_logs CASCADE;
+DROP TABLE IF EXISTS schedules CASCADE;
+DROP TABLE IF EXISTS daily_feedback CASCADE;
+DROP TABLE IF EXISTS audit_logs CASCADE;
+
+-- user_profiles table (users)
+CREATE TABLE IF NOT EXISTS user_profiles (
+  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email text UNIQUE NOT NULL,
   name text,
-  timezone text default 'UTC',
+  timezone text DEFAULT 'UTC',
   work_hours jsonb,
   trial_started_at timestamp,
-  is_pro_user boolean default false,
+  is_pro_user boolean DEFAULT false,
   stripe_customer_id text,
-  created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now(),
-  mfa_enabled boolean default false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  mfa_enabled boolean DEFAULT false,
   mfa_secret text -- encrypted in app logic, nullable
 );
 
--- user_integrations table
-create table if not exists user_integrations (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade,
-  provider text not null, -- 'google', 'outlook', etc.
-  access_token text not null,
-  refresh_token text,
-  expires_at timestamp,
-  created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
+-- thoughts table
+CREATE TABLE IF NOT EXISTS thoughts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  content text NOT NULL,
+  processed boolean DEFAULT false,
+  extracted_tasks jsonb,
+  created_at timestamp with time zone DEFAULT now()
 );
 
--- tasks table
-create table if not exists tasks (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade,
-  title text not null,
+-- tasks table (with parent_task_id for subtasks)
+CREATE TABLE IF NOT EXISTS tasks (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  parent_task_id uuid REFERENCES tasks(id) ON DELETE SET NULL,
+  title text NOT NULL,
   description text,
   start_time timestamp,
   end_time timestamp,
@@ -39,176 +45,127 @@ create table if not exists tasks (
   archetype text, -- e.g., 'reactive', 'deep work'
   priority text, -- 'high', 'medium', 'low'
   status text, -- 'pending', 'completed', 'skipped'
-  created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now()
 );
 
--- task_logs table
-create table if not exists task_logs (
-  id uuid primary key default gen_random_uuid(),
-  task_id uuid references tasks(id) on delete cascade,
-  user_id uuid references auth.users(id) on delete cascade,
-  completion_timestamp timestamp,
-  skipped_count integer default 0,
-  created_at timestamp with time zone default now()
+-- focus_sessions table
+CREATE TABLE IF NOT EXISTS focus_sessions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  task_id uuid REFERENCES tasks(id) ON DELETE SET NULL,
+  start_time timestamp,
+  end_time timestamp,
+  timer_type text, -- 'pomodoro', 'custom', 'open'
+  tab_switch_count integer DEFAULT 0,
+  idle_time integer DEFAULT 0, -- in seconds
+  manual_distractions jsonb,
+  created_at timestamp with time zone DEFAULT now()
 );
 
--- schedules table
-create table if not exists schedules (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade,
-  date date not null,
-  snapshot jsonb,
-  created_at timestamp with time zone default now()
+-- distractions table
+CREATE TABLE IF NOT EXISTS distractions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  focus_session_id uuid REFERENCES focus_sessions(id) ON DELETE CASCADE,
+  type text, -- 'tab_switch', 'manual', 'idle'
+  timestamp timestamp,
+  notes text
+);
+
+-- energy_logs table
+CREATE TABLE IF NOT EXISTS energy_logs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  focus_session_id uuid REFERENCES focus_sessions(id) ON DELETE CASCADE,
+  rating_before integer,
+  rating_after integer,
+  timestamp timestamp with time zone DEFAULT now()
 );
 
 -- calendar_tokens table
-create table if not exists calendar_tokens (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade,
-  provider text not null, -- 'google', 'outlook'
-  access_token text not null,
+CREATE TABLE IF NOT EXISTS calendar_tokens (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  provider text NOT NULL, -- 'google', 'outlook'
+  access_token text NOT NULL,
   refresh_token text,
   expires_at timestamp,
-  created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now()
 );
 
--- daily_feedback table
-create table if not exists daily_feedback (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade,
-  date date not null,
-  productivity_rating integer,
-  completed_big_thing boolean,
-  notes text,
-  created_at timestamp with time zone default now()
-);
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_user_profiles_email ON user_profiles(email);
+CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_parent_task_id ON tasks(parent_task_id);
+CREATE INDEX IF NOT EXISTS idx_thoughts_user_id ON thoughts(user_id);
+CREATE INDEX IF NOT EXISTS idx_focus_sessions_user_id ON focus_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_focus_sessions_task_id ON focus_sessions(task_id);
+CREATE INDEX IF NOT EXISTS idx_distractions_user_id ON distractions(user_id);
+CREATE INDEX IF NOT EXISTS idx_distractions_focus_session_id ON distractions(focus_session_id);
+CREATE INDEX IF NOT EXISTS idx_energy_logs_user_id ON energy_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_energy_logs_focus_session_id ON energy_logs(focus_session_id);
+CREATE INDEX IF NOT EXISTS idx_calendar_tokens_user_id ON calendar_tokens(user_id);
 
--- Indexes for performance (optional but recommended)
-create index if not exists idx_user_profiles_email on user_profiles(email);
-create index if not exists idx_tasks_user_id on tasks(user_id);
-create index if not exists idx_task_logs_user_id on task_logs(user_id);
-create index if not exists idx_schedules_user_id on schedules(user_id);
-create index if not exists idx_calendar_tokens_user_id on calendar_tokens(user_id);
-create index if not exists idx_daily_feedback_user_id on daily_feedback(user_id);
+-- Enable RLS and add policies for all user tables
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own profile"
+  ON user_profiles FOR ALL
+  USING (auth.uid() = id);
 
+ALTER TABLE thoughts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own thoughts"
+  ON thoughts FOR ALL
+  USING (auth.uid() = user_id);
 
+ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own tasks"
+  ON tasks FOR ALL
+  USING (auth.uid() = user_id);
 
--- Enable RLS and add policies for user_profiles
-alter table user_profiles enable row level security;
+ALTER TABLE focus_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own focus sessions"
+  ON focus_sessions FOR ALL
+  USING (auth.uid() = user_id);
 
-create policy "Users can view their own profile"
-  on user_profiles for select
-  using (auth.uid() = id);
+ALTER TABLE distractions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own distractions"
+  ON distractions FOR ALL
+  USING (auth.uid() = user_id);
 
-create policy "Users can receive realtime on their profile"
-  on user_profiles for select
-  using (auth.uid() = id);
+ALTER TABLE energy_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own energy logs"
+  ON energy_logs FOR ALL
+  USING (auth.uid() = user_id);
 
-create policy "Users can update their own profile"
-  on user_profiles for update
-  using (auth.uid() = id);
+ALTER TABLE calendar_tokens ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own calendar tokens"
+  ON calendar_tokens FOR ALL
+  USING (auth.uid() = user_id);
 
-create policy "Users can insert their own profile"
-  on user_profiles for insert
-  with check (auth.uid() = id);
-
-
-
--- Enable RLS and add policies for user_integrations
-alter table user_integrations enable row level security;
-
-create policy "Users can manage their own integrations"
-  on user_integrations for all
-  using (auth.uid() = user_id);
-
-
--- Enable RLS and add policies for tasks
-alter table tasks enable row level security;
-
-create policy "Users can manage their own tasks"
-  on tasks for all
-  using (auth.uid() = user_id);
-
-create policy "Users can insert their own tasks"
-  on tasks for insert
-  with check (auth.uid() = user_id);
-
-
--- Enable RLS and add policies for task_logs
-alter table task_logs enable row level security;
-
-create policy "Users can manage their own task logs"
-  on task_logs for all
-  using (auth.uid() = user_id);
-
--- Enable RLS and add policies for schedules
-alter table schedules enable row level security;
-
-create policy "Users can manage their own schedules"
-  on schedules for all
-  using (auth.uid() = user_id);
-
--- Enable RLS and add policies for calendar_tokens
-alter table calendar_tokens enable row level security;
-
-create policy "Users can manage their own calendar tokens"
-  on calendar_tokens for all
-  using (auth.uid() = user_id);
-
--- Enable RLS and add policies for daily_feedback
-alter table daily_feedback enable row level security;
-
-create policy "Users can manage their own daily feedback"
-  on daily_feedback for all
-  using (auth.uid() = user_id);
-
--- Audit logging table for security events
-create table if not exists audit_logs (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete set null,
-  action text not null,
-  details jsonb,
-  ip_address inet,
-  user_agent text,
-  severity text check (severity in ('low', 'medium', 'high', 'critical')) default 'medium',
-  created_at timestamp with time zone default now()
-);
-
--- Index for efficient querying
-create index if not exists idx_audit_logs_user_id on audit_logs(user_id);
-create index if not exists idx_audit_logs_action on audit_logs(action);
-create index if not exists idx_audit_logs_severity on audit_logs(severity);
-create index if not exists idx_audit_logs_created_at on audit_logs(created_at);
-
-
-  create or replace function update_updated_at_column()
-returns trigger as $$
+-- Updated trigger for updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS trigger AS $$
 begin
   new.updated_at = now();
   return new;
 end;
 $$ language plpgsql;
 
--- Attach to tables
-create trigger set_updated_at
-before update on user_profiles
-for each row
-execute procedure update_updated_at_column();
+-- Attach to tables with updated_at
+CREATE TRIGGER set_updated_at
+BEFORE UPDATE ON user_profiles
+FOR EACH ROW
+EXECUTE PROCEDURE update_updated_at_column();
 
-create trigger set_updated_at
-before update on user_integrations
-for each row
-execute procedure update_updated_at_column();
+CREATE TRIGGER set_updated_at
+BEFORE UPDATE ON tasks
+FOR EACH ROW
+EXECUTE PROCEDURE update_updated_at_column();
 
-create trigger set_updated_at
-before update on tasks
-for each row
-execute procedure update_updated_at_column();
-
-create trigger set_updated_at
-before update on calendar_tokens
-for each row
-execute procedure update_updated_at_column();
+CREATE TRIGGER set_updated_at
+BEFORE UPDATE ON calendar_tokens
+FOR EACH ROW
+EXECUTE PROCEDURE update_updated_at_column();
 

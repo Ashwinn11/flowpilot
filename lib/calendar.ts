@@ -80,10 +80,10 @@ export class CalendarService {
 
       // Check if we already have calendar integration
       const { data: integration, error: integrationError } = await supabase
-        .from('user_integrations')
+        .from('calendar_tokens')
         .select('*')
         .eq('user_id', user.id)
-        .eq('provider', 'google_calendar')
+        .eq('provider', 'google')
         .single();
 
       if (integrationError && integrationError.code !== 'PGRST116') {

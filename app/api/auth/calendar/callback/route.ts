@@ -80,10 +80,10 @@ export async function GET(request: NextRequest) {
 
       // Check if integration already exists
       const { data: existingIntegration } = await supabaseAdmin
-        .from('user_integrations')
+        .from('calendar_tokens')
         .select('id')
         .eq('user_id', state)
-        .eq('provider', 'google_calendar')
+        .eq('provider', 'google')
         .single();
 
       let error = null;
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
       if (existingIntegration) {
         // Update existing integration
         const { error: updateError } = await supabaseAdmin
-          .from('user_integrations')
+          .from('calendar_tokens')
           .update({
             access_token: tokenData.access_token,
             refresh_token: tokenData.refresh_token || '',
@@ -99,16 +99,16 @@ export async function GET(request: NextRequest) {
             updated_at: new Date().toISOString(),
           })
           .eq('user_id', state)
-          .eq('provider', 'google_calendar');
+          .eq('provider', 'google');
         
         error = updateError;
       } else {
         // Insert new integration
         const { error: insertError } = await supabaseAdmin
-          .from('user_integrations')
+          .from('calendar_tokens')
           .insert({
             user_id: state,
-            provider: 'google_calendar',
+            provider: 'google',
             access_token: tokenData.access_token,
             refresh_token: tokenData.refresh_token || '',
             expires_at: expiresAt.toISOString(),

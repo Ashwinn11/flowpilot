@@ -15,7 +15,8 @@ import type { Database } from "@/lib/supabase";
 type Task = Database['public']['Tables']['tasks']['Row'];
 
 interface TaskCardProps {
-  task: Task;
+  task: any; // normalized task object
+  source: 'manual' | 'calendar_event' | 'calendar_task';
   isMinimal?: boolean;
   onClick?: () => void;
   onComplete?: () => void;
@@ -36,15 +37,14 @@ const archetypeColors = {
   collaborative: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-300"
 };
 
-export function TaskCard({ task, isMinimal = false, onClick, onComplete, onSkip, onUpdate, onDelete }: TaskCardProps) {
+export function TaskCard({ task, source, isMinimal = false, onClick, onComplete, onSkip, onUpdate, onDelete }: TaskCardProps) {
   const [isCompleted, setIsCompleted] = useState(task.status === "completed");
   const [showTimeline, setShowTimeline] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   
-  const scheduledTime = task.scheduled_at ? new Date(task.scheduled_at).toLocaleTimeString([], { 
-    hour: '2-digit', 
-    minute: '2-digit' 
-  }) : 'Not scheduled';
+  const scheduledTime = task.startTime
+    ? new Date(task.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : 'Not scheduled';
 
   const handleToggleComplete = () => {
     setIsCompleted(!isCompleted);
@@ -80,104 +80,90 @@ export function TaskCard({ task, isMinimal = false, onClick, onComplete, onSkip,
         } ${isMinimal ? 'hover:bg-blue-50 dark:hover:bg-blue-900/10' : ''}`}>
           <CardContent className={isMinimal ? "p-3" : "p-4"}>
             <div className="flex items-start space-x-3">
-              <motion.div
-                whileTap={{ scale: 0.95 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleToggleComplete();
-                }}
-              >
-                <Checkbox
-                  checked={isCompleted}
-                  onCheckedChange={handleToggleComplete}
-                  className="mt-1"
-                />
-              </motion.div>
-              
+              {/* Only show checkbox for manual tasks */}
+              {source === 'manual' && (
+                <motion.div
+                  whileTap={{ scale: 0.95 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleComplete();
+                  }}
+                >
+                  <Checkbox
+                    checked={isCompleted}
+                    onCheckedChange={handleToggleComplete}
+                    className="mt-1"
+                  />
+                </motion.div>
+              )}
+              {/* Show calendar icon for calendar_event or calendar_task */}
+              {source !== 'manual' && (
+                <div className="mt-1">
+                  <span className="mt-1" title={source === 'calendar_event' ? 'Calendar Event' : 'Calendar Task'}>
+                    <Calendar className="w-5 h-5 text-blue-500" />
+                  </span>
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className={`font-medium ${isCompleted ? 'line-through text-slate-500' : 'text-slate-900 dark:text-slate-100'} ${isMinimal ? 'text-sm' : ''}`}>
                     {task.title}
                   </h3>
-                  {!isMinimal && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onUpdate && onUpdate({ status: isCompleted ? 'pending' : 'completed' })}>
-                          <Edit3 className="w-4 h-4 mr-2" />
-                          {isCompleted ? 'Mark Incomplete' : 'Mark Complete'}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onSkip && onSkip()}>
-                          <Clock className="w-4 h-4 mr-2" />
-                          Skip
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-red-600"
-                          onClick={() => onDelete && onDelete()}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  {/* Source badge */}
+                  {source !== 'manual' && (
+                    <Badge variant="outline" className="ml-2 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                      {source === 'calendar_event' ? 'Calendar Event' : 'Calendar Task'}
+                    </Badge>
                   )}
                 </div>
-                
-                <div className={`flex items-center space-x-4 text-sm text-slate-600 dark:text-slate-400 ${isMinimal ? 'text-xs space-x-3' : ''}`}>
-                  <div className="flex items-center">
-                    <Clock className={`mr-1 ${isMinimal ? 'w-3 h-3' : 'w-4 h-4'}`} />
-                    {task.duration}m
-                  </div>
-                  <div className="flex items-center">
-                    <Calendar className={`mr-1 ${isMinimal ? 'w-3 h-3' : 'w-4 h-4'}`} />
-                    {scheduledTime}
-                  </div>
+                <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">
+                  {task.description}
                 </div>
-                
-                {!isMinimal && (
-                  <div className="flex items-center space-x-2 mt-3">
-                    <Badge
-                      variant="secondary"
-                      className={priorityColors[task.priority as keyof typeof priorityColors]}
-                    >
-                      {task.priority}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className={archetypeColors[task.archetype as keyof typeof archetypeColors]}
-                    >
-                      {task.archetype}
-                    </Badge>
-                  </div>
-                )}
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  {scheduledTime}
+                </div>
               </div>
-            
-              {isMinimal && (
-                <motion.div
-                  animate={{ rotate: showTimeline ? 180 : 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                </motion.div>
+              {/* Only show actions for manual tasks */}
+              {source === 'manual' && !isMinimal && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onUpdate && onUpdate({ status: isCompleted ? 'pending' : 'completed' })}>
+                      <Edit3 className="w-4 h-4 mr-2" />
+                      {isCompleted ? 'Mark Incomplete' : 'Mark Complete'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onSkip && onSkip()}>
+                      <Clock className="w-4 h-4 mr-2" />
+                      Skip
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="text-red-600"
+                      onClick={() => onDelete && onDelete()}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
           </CardContent>
         </Card>
       </motion.div>
-
-      <DayTimelineModal
-        isOpen={showTimeline}
-        onClose={() => setShowTimeline(false)}
-        selectedTask={task}
-      />
+      {/* Timeline modal, if needed */}
+      <AnimatePresence>
+        {showTimeline && (
+          <DayTimelineModal isOpen={showTimeline} onClose={() => setShowTimeline(false)} selectedTask={task} />
+        )}
+      </AnimatePresence>
     </>
   );
 }
