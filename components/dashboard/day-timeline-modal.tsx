@@ -18,143 +18,198 @@ interface DayTimelineModalProps {
 }
 
 // Mock data for the full day timeline
-const mockDayTasks: Task[] = [
-  {
-    id: "1",
-    user_id: "mock-user",
-    title: "Morning routine & coffee",
-    description: null,
-    duration: 30,
-    priority: "low",
-    status: "completed",
-    scheduled_at: "2024-01-15T08:00:00Z",
-    archetype: "reactive",
-    completed_at: null,
-    skipped_count: 0,
-    created_at: "2024-01-15T07:50:00Z",
-    updated_at: "2024-01-15T08:00:00Z"
-  },
-  {
-    id: "2",
-    user_id: "mock-user",
-    title: "Review quarterly reports",
-    description: null,
-    duration: 90,
-    priority: "high",
-    status: "completed",
-    scheduled_at: "2024-01-15T09:00:00Z",
-    archetype: "analytical",
-    completed_at: null,
-    skipped_count: 0,
-    created_at: "2024-01-15T08:50:00Z",
-    updated_at: "2024-01-15T09:00:00Z"
-  },
-  {
-    id: "3",
-    user_id: "mock-user",
-    title: "Team standup meeting",
-    description: null,
-    duration: 30,
-    priority: "medium",
-    status: "completed",
-    scheduled_at: "2024-01-15T10:30:00Z",
-    archetype: "collaborative",
-    completed_at: null,
-    skipped_count: 0,
-    created_at: "2024-01-15T10:00:00Z",
-    updated_at: "2024-01-15T10:30:00Z"
-  },
-  {
-    id: "4",
-    user_id: "mock-user",
-    title: "Focus break",
-    description: null,
-    duration: 15,
-    priority: "low",
-    status: "completed",
-    scheduled_at: "2024-01-15T11:00:00Z",
-    archetype: "reactive",
-    completed_at: null,
-    skipped_count: 0,
-    created_at: "2024-01-15T10:50:00Z",
-    updated_at: "2024-01-15T11:00:00Z"
-  },
-  {
-    id: "5",
-    user_id: "mock-user",
-    title: "Client presentation prep",
-    description: null,
-    duration: 120,
-    priority: "high",
-    status: "in_progress",
-    scheduled_at: "2024-01-15T11:15:00Z",
-    archetype: "creative",
-    completed_at: null,
-    skipped_count: 0,
-    created_at: "2024-01-15T11:00:00Z",
-    updated_at: "2024-01-15T11:15:00Z"
-  },
-  {
-    id: "6",
-    user_id: "mock-user",
-    title: "Lunch break",
-    description: null,
-    duration: 60,
-    priority: "low",
-    status: "pending",
-    scheduled_at: "2024-01-15T13:15:00Z",
-    archetype: "reactive",
-    completed_at: null,
-    skipped_count: 0,
-    created_at: "2024-01-15T13:00:00Z",
-    updated_at: "2024-01-15T13:15:00Z"
-  },
-  {
-    id: "7",
-    user_id: "mock-user",
-    title: "Design system updates",
-    description: null,
-    duration: 120,
-    priority: "high",
-    status: "pending",
-    scheduled_at: "2024-01-15T14:15:00Z",
-    archetype: "creative",
-    completed_at: null,
-    skipped_count: 0,
-    created_at: "2024-01-15T14:00:00Z",
-    updated_at: "2024-01-15T14:15:00Z"
-  },
-  {
-    id: "8",
-    user_id: "mock-user",
-    title: "Code review session",
-    description: null,
-    duration: 45,
-    priority: "medium",
-    status: "pending",
-    scheduled_at: "2024-01-15T16:15:00Z",
-    archetype: "analytical",
-    completed_at: null,
-    skipped_count: 0,
-    created_at: "2024-01-15T16:00:00Z",
-    updated_at: "2024-01-15T16:15:00Z"
-  },
-  {
-    id: "9",
-    user_id: "mock-user",
-    title: "Wrap up & planning",
-    description: null,
-    duration: 30,
-    priority: "low",
-    status: "pending",
-    scheduled_at: "2024-01-15T17:00:00Z",
-    archetype: "analytical",
-    completed_at: null,
-    skipped_count: 0,
-    created_at: "2024-01-15T16:50:00Z",
-    updated_at: "2024-01-15T17:00:00Z"
-  }
-];
+function getMockDayTasks(): Task[] {
+  const now = new Date();
+  // Helper to get ISO string for a time offset from now (in minutes)
+  const isoWithOffset = (minutesOffset: number) => {
+    const d = new Date(now.getTime() + minutesOffset * 60000);
+    // Format as local time in ISO-like string (YYYY-MM-DDTHH:mm:ss)
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  };
+  return [
+    {
+      id: "1",
+      user_id: "mock-user",
+      title: "Morning routine & coffee",
+      description: null,
+      duration: 30,
+      priority: "low",
+      status: "completed",
+      scheduled_at: isoWithOffset(-120), // 2 hours ago
+      start_time: null,
+      end_time: null,
+      archetype: "reactive",
+      completed_at: null,
+      skipped_count: 0,
+      calendar_event_id: null,
+      calendar_task_id: null,
+      calendar_sync_status: "pending",
+      created_at: isoWithOffset(-130),
+      updated_at: isoWithOffset(-120)
+    },
+    {
+      id: "2",
+      user_id: "mock-user",
+      title: "Review quarterly reports",
+      description: null,
+      duration: 90,
+      priority: "high",
+      status: "completed",
+      scheduled_at: isoWithOffset(-90),
+      start_time: null,
+      end_time: null,
+      archetype: "analytical",
+      completed_at: null,
+      skipped_count: 0,
+      calendar_event_id: null,
+      calendar_task_id: null,
+      calendar_sync_status: "pending",
+      created_at: isoWithOffset(-100),
+      updated_at: isoWithOffset(-90)
+    },
+    {
+      id: "3",
+      user_id: "mock-user",
+      title: "Team standup meeting",
+      description: null,
+      duration: 30,
+      priority: "medium",
+      status: "completed",
+      scheduled_at: isoWithOffset(-60),
+      start_time: null,
+      end_time: null,
+      archetype: "collaborative",
+      completed_at: null,
+      skipped_count: 0,
+      calendar_event_id: null,
+      calendar_task_id: null,
+      calendar_sync_status: "pending",
+      created_at: isoWithOffset(-70),
+      updated_at: isoWithOffset(-60)
+    },
+    {
+      id: "4",
+      user_id: "mock-user",
+      title: "Focus break",
+      description: null,
+      duration: 15,
+      priority: "low",
+      status: "completed",
+      scheduled_at: isoWithOffset(-30),
+      start_time: null,
+      end_time: null,
+      archetype: "reactive",
+      completed_at: null,
+      skipped_count: 0,
+      calendar_event_id: null,
+      calendar_task_id: null,
+      calendar_sync_status: "pending",
+      created_at: isoWithOffset(-40),
+      updated_at: isoWithOffset(-30)
+    },
+    {
+      id: "5",
+      user_id: "mock-user",
+      title: "Client presentation prep",
+      description: null,
+      duration: 120,
+      priority: "high",
+      status: "in_progress",
+      scheduled_at: isoWithOffset(0), // now
+      start_time: null,
+      end_time: null,
+      archetype: "creative",
+      completed_at: null,
+      skipped_count: 0,
+      calendar_event_id: null,
+      calendar_task_id: null,
+      calendar_sync_status: "pending",
+      created_at: isoWithOffset(-10),
+      updated_at: isoWithOffset(0)
+    },
+    {
+      id: "6",
+      user_id: "mock-user",
+      title: "Lunch break",
+      description: null,
+      duration: 60,
+      priority: "low",
+      status: "pending",
+      scheduled_at: isoWithOffset(60), // in 1 hour
+      start_time: null,
+      end_time: null,
+      archetype: "reactive",
+      completed_at: null,
+      skipped_count: 0,
+      calendar_event_id: null,
+      calendar_task_id: null,
+      calendar_sync_status: "pending",
+      created_at: isoWithOffset(50),
+      updated_at: isoWithOffset(60)
+    },
+    {
+      id: "7",
+      user_id: "mock-user",
+      title: "Design system updates",
+      description: null,
+      duration: 120,
+      priority: "high",
+      status: "pending",
+      scheduled_at: isoWithOffset(120), // in 2 hours
+      start_time: null,
+      end_time: null,
+      archetype: "creative",
+      completed_at: null,
+      skipped_count: 0,
+      calendar_event_id: null,
+      calendar_task_id: null,
+      calendar_sync_status: "pending",
+      created_at: isoWithOffset(110),
+      updated_at: isoWithOffset(120)
+    },
+    {
+      id: "8",
+      user_id: "mock-user",
+      title: "Code review session",
+      description: null,
+      duration: 45,
+      priority: "medium",
+      status: "pending",
+      scheduled_at: isoWithOffset(180), // in 3 hours
+      start_time: null,
+      end_time: null,
+      archetype: "analytical",
+      completed_at: null,
+      skipped_count: 0,
+      calendar_event_id: null,
+      calendar_task_id: null,
+      calendar_sync_status: "pending",
+      created_at: isoWithOffset(170),
+      updated_at: isoWithOffset(180)
+    },
+    {
+      id: "9",
+      user_id: "mock-user",
+      title: "Wrap up & planning",
+      description: null,
+      duration: 30,
+      priority: "low",
+      status: "pending",
+      scheduled_at: isoWithOffset(240), // in 4 hours
+      start_time: null,
+      end_time: null,
+      archetype: "analytical",
+      completed_at: null,
+      skipped_count: 0,
+      calendar_event_id: null,
+      calendar_task_id: null,
+      calendar_sync_status: "pending",
+      created_at: isoWithOffset(230),
+      updated_at: isoWithOffset(240)
+    }
+  ];
+}
 
 const priorityColors = {
   high: "border-red-500 bg-red-50 dark:bg-red-900/20",
@@ -256,7 +311,7 @@ export function DayTimelineModal({ isOpen, onClose, selectedTask }: DayTimelineM
 
               {/* Tasks */}
               <div className="relative h-full">
-                {mockDayTasks.map((task, index) => {
+                {getMockDayTasks().map((task, index) => {
                   const position = getTimePosition(task.scheduled_at);
                   const width = (task.duration / 60) / 10 * 100; // Convert duration to percentage
                   const StatusIcon = statusIcons[task.status as keyof typeof statusIcons];

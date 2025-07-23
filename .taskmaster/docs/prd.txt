@@ -1,160 +1,295 @@
-# Product Requirements Document (PRD) – Unblock
+**Product Requirements Document (PRD)**
 
-## Product Overview
-
-* **Product Name:** Unblock
-* **Platform:** Web application (mobile-friendly, desktop-first)
-* **Category:** Productivity, Focus Management, Personal Planning
-* **Target Users:** Knowledge workers, students, creators, neurodiverse individuals
-* **Primary Goal:** Convert scattered thoughts into actionable tasks and focused execution.
+**Product Name:** Unblock
+**Tagline:** Productivity without pretending.
+**Owner:** Ashwin
+**Version:** 1.0
+**Last Updated:** 2025-07-23
 
 ---
 
-## Problem Statement
+## 1. Purpose
 
-Users struggle with:
-
-* Cluttered minds with unstructured thoughts
-* Overwhelm and decision fatigue
-* Difficulty starting tasks or knowing what to prioritize
-* Easy distraction during work
-* No automatic handling of incomplete tasks
-* Lack of insight into focus patterns and energy levels
+Unblock is a behavioral productivity system that transforms mental clutter into meaningful execution. Unlike traditional task managers, Unblock focuses on cognitive load reduction, real-time friction removal, and deep-work optimization. It acts like a productivity therapist and operator in your pocket.
 
 ---
 
-## Key Value Proposition
+## 2. Problem Statement
 
-Unblock converts user thoughts into structured tasks, intelligently schedules them, and guides them through focused work sessions with distraction tracking and energy awareness. It helps users clear mental clutter, focus with intention, and complete more with less stress.
+Most productivity tools focus on task organization, not behavior. Users still:
 
----
+* Procrastinate
+* Overload themselves
+* Get distracted
+* Don’t follow through
 
-## Core Features
+Unblock addresses this by:
 
-### 1. Thought Dump
-
-* Input method: Free-form text entry
-* AI/NLP to extract tasks from dumped thoughts
-* Tags, categories, and linking support
-
-### 2. Task Structuring
-
-* AI parses thought dump and suggests tasks
-* Tasks include: title, description, priority, duration
-* Task breakdown for large items (subtask generation)
-
-### 3. Calendar Integration
-
-* Google & Microsoft Calendar support
-* Sync free/busy time slots
-* Auto-scheduling based on availability
-* Smart rescheduling for missed tasks
-
-### 4. Focus Sessions
-
-* User starts a timed session for any task
-* Timer types: Pomodoro (25:5), Custom length, Open-ended
-* Tracks tab switches, idle time, interruptions
-* Distraction summary at session end
-
-### 5. Energy & Distraction Tracking
-
-* User rates energy before and after a session (1–5 scale)
-* Logs tab switches and inactivity automatically
-* Optional manual distraction log
-
-### 6. Task Completion Loop
-
-* Tasks can be marked complete, skipped, or deferred
-* Incomplete tasks are automatically rescheduled
-* End-of-day summary of completed and rescheduled tasks
-
-### 7. Reporting & Trends
-
-* Weekly stats: time focused, tasks completed
-* Energy curve and distraction heatmaps
-* Personalized suggestions: best focus hours, top distractors
+* Detecting blockers
+* Breaking friction
+* Nudging toward execution
+* Offering personalized interventions
 
 ---
 
-## User Journey Workflow
+## 3. Goals & Success Metrics
 
-1. **Sign Up / Login**
-2. **Landing Page** → Prompt to dump thoughts
-3. **Thought Dump Page** → NLP task extraction
-4. **Task Review** → User confirms tasks
-5. **Calendar Sync** → Auto-scheduling
-6. **Focus Session Page** → Start timer, track focus
-7. **Session End** → Mark task complete, rate energy, log distractions
-8. **Daily Wrap-Up** → Review what was done, reschedule leftovers
+### Goals
 
----
+* Shift users from intent to action in < 60 seconds
+* Detect and resolve friction points in real time
+* Create sustainable, self-reinforcing execution habits
 
-## Tech Stack
+### Success Metrics
 
-* **Frontend:** Next.js 15, TailwindCSS, shadcn/ui
-* **Backend:** Supabase (PostgreSQL, Auth, Edge Functions, RLS)
-* **Calendar API:** Google Calendar API, Microsoft Graph
-* **AI Processing:** OpenAI for task parsing and summarization
-* **Analytics:** Supabase logs or Posthog (optional)
+* Daily planning streak
+* Task completion rate (vs planned)
+* Focus session adherence
+* Blocker resolution rate
 
 ---
 
-## Supabase Schema (Key Tables)
+## 4. Target Users
 
-* `users`
-* `thoughts`
-* `tasks`
-* `focus_sessions`
-* `distractions`
-* `energy_logs`
-* `calendar_tokens`
+* Creators & indie builders
+* ADHD / neurodivergent users
+* Professionals battling overwhelm
+* Students
 
 ---
 
-## Differentiators
+## 5. Core Features
 
-* AI-first task extraction (from thoughts)
-* Focus sessions with distraction + energy tracking
-* Smart rescheduling of missed tasks
-* Insight-driven interface, not just to-do lists
+### 1. Smart Daily Planner
+
+* AI generates day plan from tasks + calendar
+* Inputs:
+
+  * User-defined goals
+  * Synced calendar events
+  * Past context (incomplete tasks, focus history)
+* Outputs:
+
+  * Prioritized task list
+  * Time-blocked execution plan
+  * Optional focus suggestions
+
+### 2. Intent → Action Parser
+
+* Input: free-form (text/voice)
+* Uses TaskMaster AI to:
+
+  * Break into subtasks
+  * Assign deadlines and estimates
+  * Schedule into calendar slots or plan list
+
+### 3. Task Control Panel
+
+Each task supports:
+
+* ✅ Done — marks task completed
+* 🗓️ Not Today — defers task with reasoning
+* 💀 Kill — removes irrelevant/stale tasks
+* 🔄 Reschedule — prompts AI or user to reschedule
+* ⚙️ Auto — lets AI decide optimal time based on availability, priority, and energy profile
+
+### 4. Focus Zone (Deep Work Mode)
+
+* Full-screen timer (Pomodoro/custom)
+* Live task progress + encouragement
+* App/browsing distraction blockers
+* Ambient sound + minimal UI
+* Visual feedback for deep work consistency
+
+### 5. Blocker Detection & Nudges
+
+* Detects idle states, scrolling, inactivity
+* Triggers intervention prompts like:
+
+  * “What’s stopping you?”
+  * “Start with 5-min mode?”
+  * “Reschedule or drop it?”
+
+### 6. Productivity Pulse (Daily Wrap-up)
+
+* Summary at end of day:
+
+  * Tasks completed (planned vs actual)
+  * Focus score
+  * Mood & energy tagging
+  * Blockers cleared
+* Visual streak + “Crushed it” moment
+
+### 7. Integrations
+
+* Google/Microsoft Calendar: sync & write
+* Google Tasks (read/write)
+* Slack (mute during deep work)
+* TaskMaster AI (task parsing & micro-planning)
 
 ---
 
-## KPIs
+## 6. Technical Architecture
 
-* % of tasks completed on time
-* Number of daily/weekly focus sessions
-* Average energy rating
-* Weekly distraction count
-* Retention rate (weekly active users)
+### Frontend
 
----
+* Next.js 15 (App Router)
+* Tailwind CSS
+* shadcn/ui
+* Zustand for local state
 
-## Future Enhancements
+### Backend
 
-* Native mobile app (iOS/Android)
-* Voice-based input for thought dump
-* AI planner assistant (chat-based)
-* Co-working mode (virtual accountability)
-* Smart break coaching (movement, hydration reminders)
+* Supabase (Postgres, Edge functions, Auth)
+* RLS for data security
+* OpenAI (LLM APIs for parsing, planning, nudging)
 
----
+### Cross-Platform
 
-## Marketing CTA
-
-* **Tagline:** Clear your mind. Focus your energy. Finish what matters.
-* **Primary Button:** “Unblock My Day”
+* React Native for mobile
+* Web-first PWA
 
 ---
 
-## Risks & Mitigation
+## 7. Data Models (Simplified)
 
-* **Calendar Overwrites:** Explicit permission-based syncing only
-* **User Burnout:** Progressive onboarding and session limits
-* **Privacy Concerns:** RLS policies, encryption, transparency on data use
+### `users`
 
-### # Appendix
+* id (uuid)
+* email
+* timezone
+* energy\_profile (jsonb)
+
+### `tasks`
+
+* id (uuid)
+* user\_id (fk)
+* title
+* description
+* status (pending, done, killed, deferred)
+* scheduled\_time (timestamptz)
+* estimated\_time (interval)
+* priority
+* source (manual, calendar, AI)
+
+### `focus_sessions`
+
+* id
+* user\_id
+* task\_id (fk)
+* started\_at
+* ended\_at
+* distractions\_detected
+* focus\_rating
+
+### `blockers`
+
+* id
+* task\_id
+* type (internal, external, unknown)
+* prompt\_shown
+* resolved
+
+### `daily_logs`
+
+* id
+* user\_id
+* date
+* tasks\_planned
+* tasks\_completed
+* focus\_score
+* mood
+
+---
+
+## 8. Logic & Behavior Rules
+
+### Calendar Events vs Tasks
+
+* Google-synced events:
+
+  * Can be marked done (updates event with ✅)
+  * Can be deferred (moves to next open slot)
+  * Cannot be deleted from Google unless user confirms
+
+### Auto-Scheduling Logic
+
+* Based on:
+
+  * User availability
+  * Task priority
+  * Energy profile (low/high energy slots)
+  * Past completion trends
+
+### Task Lifecycle
+
+* Created → Pending
+* Pending → Done / Deferred / Killed / Auto-scheduled
+
+---
+
+## 9. Rollout Plan
+
+**Phase 1 (MVP)**
+
+* Daily Planner
+* Task parsing with TaskMaster AI
+* Task actions (Done, Kill, Not Today, Reschedule)
+* Google Calendar sync (read)
+* Focus Timer (basic)
+
+**Phase 2**
+
+* Full Focus Zone with distractions + blockers
+* Blocker nudging + Snap out of scroll
+* Calendar write support
+* Progress wrap-up report
+
+**Phase 3**
+
+* Mobile app
+* Advanced metrics (weekly review)
+* Mood + energy based planning
+* Smart habit suggestions
+
+---
+
+## 10. Risks & Mitigation
+
+| Risk                  | Mitigation                                  |
+| --------------------- | ------------------------------------------- |
+| Calendar overwrite    | Show explicit confirmation dialogs          |
+| LLM misinterpretation | Give user full edit control post-AI parsing |
+| Task overload         | Hard cap + AI warnings when overcommitted   |
+| Sync failure          | Retry queue + offline fallback              |
+
+---
+
+## 11. AI Prompt Contracts (for TaskMaster AI)
+
+### Prompt Template
+
+```text
+Input: "I want to launch my website this weekend"
+Output:
+- Create homepage content (2 hrs)
+- Design landing page (3 hrs)
+- Deploy to Vercel (1 hr)
+- Deadline: Sunday EOD
+- Priority: High
+```
+
+---
+
+## 12. Appendix
+
+* Design mocks (Figma)
+* Supabase schema.sql
+* TaskMaster prompt contracts
+* Deep Work scoring rubric
+* Streak + reward system spec
+
+---
 
 #### Research Highlights
 

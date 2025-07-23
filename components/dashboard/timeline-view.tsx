@@ -18,6 +18,7 @@ type Task = Database['public']['Tables']['tasks']['Row'];
 
 interface TimelineViewProps {
   tasks: (Task | CalendarEvent)[];
+  userTimezone?: string;
   onComplete?: (task: any) => void;
   onSkip?: (task: any) => void;
   onUpdate?: (task: any, updates: any) => void;
@@ -35,7 +36,7 @@ interface TimelineItem {
   event?: CalendarEvent;
 }
 
-export function TimelineView({ tasks, onComplete, onSkip, onUpdate, onDelete, onAddToCalendar }: TimelineViewProps) {
+export function TimelineView({ tasks, userTimezone, onComplete, onSkip, onUpdate, onDelete, onAddToCalendar }: TimelineViewProps) {
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -155,6 +156,13 @@ export function TimelineView({ tasks, onComplete, onSkip, onUpdate, onDelete, on
         };
     }
   };
+
+  // Normalize a task or event to always have title/description
+  const normalizeTaskOrEvent = (item: any) => ({
+    ...item,
+    title: item.title || item.summary || '(No Title)',
+    description: item.description || '',
+  });
 
   // Initial load
   useEffect(() => {
@@ -320,8 +328,9 @@ export function TimelineView({ tasks, onComplete, onSkip, onUpdate, onDelete, on
                     {/* Use TaskCard for all items */}
                     <div className="flex-1">
                       <TaskCard
-                        task={item.task || item.event}
+                        task={normalizeTaskOrEvent(item.task || item.event)}
                         source={item.type === 'task' ? 'manual' : (item.event?.eventType === 'task' ? 'calendar_task' : 'calendar_event')}
+                        userTimezone={userTimezone}
                         onComplete={item.type === 'task' ? () => onComplete && onComplete(item.task) : undefined}
                         onSkip={item.type === 'task' ? () => onSkip && onSkip(item.task) : undefined}
                         onUpdate={item.type === 'task' ? (updates => onUpdate && onUpdate(item.task, updates)) : undefined}

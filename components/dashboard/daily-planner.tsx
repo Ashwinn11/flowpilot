@@ -16,10 +16,13 @@ import { toast } from "sonner";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import type { Database } from "@/lib/supabase";
+type TaskInsert = Database['public']['Tables']['tasks']['Insert'];
 import type { CalendarEvent } from "@/lib/calendar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { supabase } from '@/lib/supabase';
+import { DateTime } from "luxon";
+import { useProfile } from "@/hooks/use-profile";
 
 type Task = Database['public']['Tables']['tasks']['Row'];
 
@@ -98,8 +101,35 @@ async function upsertManualTaskForCalendarItem({
   }
 }
 
+// Utility: Normalize a calendar event/task to a consistent shape
+function normalizeCalendarItem(item: any) {
+  // Try to extract a valid date string (prefer dateTime, fallback to date)
+  let rawDate = item?.start?.dateTime || item?.start?.date || item?.scheduled_at || null;
+  let dateObj = rawDate ? new Date(rawDate) : null;
+  // Fallback: if date is invalid, try end date
+  if ((!dateObj || isNaN(dateObj.getTime())) && item?.end) {
+    rawDate = item?.end?.dateTime || item?.end?.date;
+    dateObj = rawDate ? new Date(rawDate) : null;
+  }
+  // Fallback: if still invalid, skip
+  if (!dateObj || isNaN(dateObj.getTime())) return null;
+  // Normalize to local ISO date string for comparison
+  const localDate = dateObj.toLocaleDateString('en-CA'); // YYYY-MM-DD
+  return {
+    id: item.id,
+    title: item.summary || item.title || '(No Title)',
+    description: item.description || '',
+    startTime: dateObj.toISOString(),
+    localDate,
+    raw: item,
+  };
+}
+
 export function DailyPlanner({ calendarData }: DailyPlannerProps) {
   const { user } = useAuth();
+  const { profile } = useProfile();
+  const userTimezone = profile?.timezone || DateTime.local().zoneName;
+  const userWorkHours = profile?.work_hours || { start: "09:00", end: "17:00", days: [1,2,3,4,5] };
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEndOfDay, setShowEndOfDay] = useState(false);
@@ -108,15 +138,25 @@ export function DailyPlanner({ calendarData }: DailyPlannerProps) {
   const [isProcessingThoughts, setIsProcessingThoughts] = useState(false);
   const [suggestedTasks, setSuggestedTasks] = useState<string[]>([]);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [freeTimeSlots, setFreeTimeSlots] = useState<any[]>([]); // [{ date: Date, freeSlots: [{ start, end, duration }] }]
   const thoughtInputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Filter calendar events/tasks for today only (inside component)
-  const todayEvents = (calendarData?.events || []).filter((e: any) =>
-    isToday(e.start?.dateTime || e.start?.date)
-  );
-  const todayCalendarTasks = (calendarData?.tasks || []).filter((e: any) =>
-    isToday(e.start?.dateTime || e.start?.date)
-  );
+  // Normalize and filter calendar events/tasks for today
+  const normalizedEvents = (calendarData?.events || []).map(normalizeCalendarItem).filter(Boolean);
+  const normalizedCalendarTasks = (calendarData?.tasks || []).map(normalizeCalendarItem).filter(Boolean);
+  // Today's date in local ISO format
+  const todayLocal = new Date().toLocaleDateString('en-CA');
+  const todayEvents = normalizedEvents.filter((e): e is NonNullable<typeof e> => !!e && e.localDate === todayLocal);
+  const todayCalendarTasks = normalizedCalendarTasks.filter((e): e is NonNullable<typeof e> => !!e && e.localDate === todayLocal);
+  // Debug: Log raw and filtered calendar data
+  if (typeof window !== 'undefined') {
+    console.debug('[DailyPlanner] Raw calendarData.events:', calendarData?.events);
+    console.debug('[DailyPlanner] Raw calendarData.tasks:', calendarData?.tasks);
+    console.debug('[DailyPlanner] Normalized events:', normalizedEvents);
+    console.debug('[DailyPlanner] Normalized tasks:', normalizedCalendarTasks);
+    console.debug('[DailyPlanner] Today events:', todayEvents);
+    console.debug('[DailyPlanner] Today calendar tasks:', todayCalendarTasks);
+  }
 
   const completedTasks = tasks.filter(task => task.status === "completed").length;
   const totalTasks = tasks.length;
@@ -188,19 +228,53 @@ export function DailyPlanner({ calendarData }: DailyPlannerProps) {
     }
   };
 
+  // Helper: Find the next available free slot today in user's timezone and work hours
+  function getNextAvailableFreeSlot(durationMinutes: number = 60) {
+    const today = DateTime.now().setZone(userTimezone).toISODate();
+    // Find today's free slots
+    const todaySlots = freeTimeSlots.find((slot: any) => {
+      const slotDate = DateTime.fromJSDate(slot.date).setZone(userTimezone).toISODate();
+      return slotDate === today;
+    });
+    if (!todaySlots || !todaySlots.freeSlots || todaySlots.freeSlots.length === 0) return null;
+    // Filter slots within work hours
+    const workStart = DateTime.fromFormat(userWorkHours.start, "HH:mm", { zone: userTimezone });
+    const workEnd = DateTime.fromFormat(userWorkHours.end, "HH:mm", { zone: userTimezone });
+    const validSlots = todaySlots.freeSlots.filter((slot: any) => {
+      const slotStart = DateTime.fromISO(slot.start, { zone: userTimezone });
+      const slotEnd = DateTime.fromISO(slot.end, { zone: userTimezone });
+      return (
+        slotStart >= workStart &&
+        slotEnd <= workEnd &&
+        slot.duration >= durationMinutes
+      );
+    });
+    return validSlots.length > 0 ? validSlots[0] : null;
+  }
+
+  // Update handleAddTask to use next free slot
   const handleAddTask = async (taskData: any) => {
     if (!user) return;
-    
     try {
-      const newTask = await TaskService.scheduleTask(user.id, {
+      let scheduledAt: string | null = null;
+      const nextSlot = getNextAvailableFreeSlot(taskData.duration || 60);
+      if (nextSlot) {
+        scheduledAt = DateTime.fromISO(nextSlot.start, { zone: userTimezone }).toFormat("yyyy-MM-dd'T'HH:mm:ss");
+      } else {
+        // Fallback: now in user's timezone
+        scheduledAt = DateTime.now().setZone(userTimezone).toFormat("yyyy-MM-dd'T'HH:mm:ss");
+      }
+      const newTask: TaskInsert = {
+        user_id: user.id,
         title: taskData.title,
         description: taskData.description || null,
         duration: taskData.duration,
         priority: taskData.priority,
-        archetype: taskData.archetype || 'reactive'
-      });
-      
-      setTasks(prev => [...prev, newTask]);
+        archetype: taskData.archetype || 'reactive',
+        scheduled_at: scheduledAt,
+      };
+      const created = await TaskService.createTask(newTask);
+      setTasks(prev => [...prev, created]);
       toast.success('Your new task has been added!');
     } catch (error) {
       console.error('Error adding task:', error);
@@ -283,8 +357,8 @@ export function DailyPlanner({ calendarData }: DailyPlannerProps) {
     }
   };
 
+  // Update handleConfirmSuggestedTasks to use next free slot for each
   const handleConfirmSuggestedTasks = async () => {
-    // Add each suggested task to today (reuse handleAddTask logic)
     for (const title of suggestedTasks) {
       await handleAddTask({ title, description: null, duration: 60, priority: "medium", archetype: "reactive" });
     }
@@ -404,37 +478,28 @@ export function DailyPlanner({ calendarData }: DailyPlannerProps) {
   };
 
   // Normalize mergedTasks for unified display and sorting
-  const mergedTasks = [
-    ...tasks.map(t => ({
-      id: t.id,
-      title: t.title,
-      description: t.description,
-      startTime: t.start_time || '',
-      source: 'manual' as const,
-      raw: t
-    })),
-    ...todayEvents.map(e => ({
-      id: e.id,
-      title: e.summary || '',
-      description: e.description || '',
-      startTime: e.start?.dateTime || e.start?.date || '',
-      source: 'calendar_event' as const,
-      raw: e
-    })),
-    ...todayCalendarTasks.map(e => ({
-      id: e.id,
-      title: e.summary || '',
-      description: e.description || '',
-      startTime: e.start?.dateTime || e.start?.date || '',
-      source: 'calendar_task' as const,
-      raw: e
-    })),
-  ];
+  // Only include manual tasks not yet added to calendar
+  const filteredManualTasks = tasks.filter(
+    t => !t.calendar_event_id && !t.calendar_task_id
+  );
+  // Merge with all calendar events/tasks
+  const mergedTasks = ([] as any[])
+    .concat(filteredManualTasks)
+    .concat(todayEvents.filter(Boolean).map(e => e.raw))
+    .concat(todayCalendarTasks.filter(Boolean).map(e => e.raw));
   // Sort by startTime if available, otherwise by title
   mergedTasks.sort((a, b) => {
-    if (a.startTime && b.startTime) return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
-    return a.title.localeCompare(b.title);
+    const aTime = a.start_time || a.start?.dateTime || a.start?.date || '';
+    const bTime = b.start_time || b.start?.dateTime || b.start?.date || '';
+    if (aTime && bTime) return new Date(aTime).getTime() - new Date(bTime).getTime();
+    const aTitle = a.title || a.summary || '';
+    const bTitle = b.title || b.summary || '';
+    return aTitle.localeCompare(bTitle);
   });
+
+  // Diagnostics: If calendar data exists but nothing is shown, show a warning
+  const calendarDataExists = (normalizedEvents.length > 0 || normalizedCalendarTasks.length > 0);
+  const calendarDataForTodayExists = (todayEvents.length > 0 || todayCalendarTasks.length > 0);
 
   return (
     <div className="space-y-6">
@@ -595,11 +660,16 @@ export function DailyPlanner({ calendarData }: DailyPlannerProps) {
         <CardContent>
           {mergedTasks.length === 0 ? (
             <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-              No tasks or events scheduled for today. Add a task or connect your calendar!
+              No tasks or events scheduled for today. Add a task or connect your calendar!<br />
+              {calendarDataExists && !calendarDataForTodayExists && (
+                <span className="block mt-2 text-xs text-yellow-600 dark:text-yellow-400">
+                  Calendar data is present, but no events/tasks match today. Check event times, timezones, or integration.
+                </span>
+              )}
             </div>
           ) : (
             <TimelineView
-              tasks={mergedTasks.map(t => t.raw)}
+              tasks={mergedTasks}
               onComplete={task => handleUnifiedTaskComplete(task, task.calendar_event_id ? 'calendar_event' : task.calendar_task_id ? 'calendar_task' : 'manual')}
               onSkip={task => handleUnifiedTaskSkip(task, task.calendar_event_id ? 'calendar_event' : task.calendar_task_id ? 'calendar_task' : 'manual')}
               onUpdate={(task, updates) => handleUnifiedTaskUpdate(task, task.calendar_event_id ? 'calendar_event' : task.calendar_task_id ? 'calendar_task' : 'manual', updates)}

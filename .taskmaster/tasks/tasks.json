@@ -2,127 +2,129 @@
   "master": {
     "tasks": [
       {
-        "id": 11,
+        "id": 21,
         "title": "Setup Project Repository",
-        "description": "Initialize the project repository for Unblock using Git and create the initial folder structure for frontend and backend.",
-        "details": "Create a Git repository on GitHub. Set up the folder structure: /frontend, /backend, and /docs. Initialize package.json in both frontend and backend directories using npm init.",
-        "testStrategy": "Verify repository creation and folder structure by cloning the repo and checking the directory layout.",
+        "description": "Initialize the project repository for Unblock using Git and set up the initial directory structure for frontend and backend.",
+        "details": "Create a Git repository on GitHub. Initialize the project with Next.js for the frontend and Supabase for the backend. Set up directories for components, pages, and API routes in Next.js. Include a README.md with project overview and setup instructions.",
+        "testStrategy": "Verify repository creation and structure by cloning it and checking directory contents.",
         "priority": "medium",
         "dependencies": [],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 12,
+        "id": 22,
         "title": "Implement User Authentication",
-        "description": "Set up user authentication using Supabase for user registration and login functionality.",
-        "details": "Integrate Supabase Auth in the backend. Create API endpoints for user registration and login. Use JWT for session management.",
+        "description": "Set up user authentication using Supabase for the Unblock application.",
+        "details": "Utilize Supabase Auth to implement user sign-up and login functionalities. Create API routes in Next.js to handle authentication requests. Ensure secure password storage and user session management.",
         "testStrategy": "Test user registration and login flows, ensuring users can create accounts and log in successfully.",
         "priority": "high",
-        "dependencies": [],
-        "status": "done",
+        "dependencies": [
+          21
+        ],
+        "status": "pending",
         "subtasks": []
       },
       {
-        "id": 13,
+        "id": 23,
         "title": "Develop Thought Dump Feature",
-        "description": "Create the Thought Dump page where users can input free-form text to extract tasks.",
-        "details": "Implement a text area for input and a submit button. Use OpenAI API to process the input and extract tasks. Display suggested tasks to the user.",
-        "testStrategy": "Input various text samples and verify that tasks are extracted correctly and displayed.",
+        "description": "Create the Thought Dump page where users can input their thoughts in free-form text.",
+        "details": "Implement a text input area for users to enter their thoughts. Use state management to handle input data. Design the UI using TailwindCSS for a clean and responsive layout.",
+        "testStrategy": "Check if the input captures user text correctly and displays it on the page.",
         "priority": "high",
         "dependencies": [
-          12
+          22
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": []
       },
       {
-        "id": 14,
-        "title": "Task Structuring Logic",
-        "description": "Implement the logic to structure tasks from the thought dump, including title, description, priority, and duration.",
-        "details": "Create a function that takes the extracted tasks and structures them into the required format. Use AI/NLP for task breakdown and subtask generation.",
-        "testStrategy": "Test with different thought dumps to ensure tasks are structured correctly and subtasks are generated as needed.",
+        "id": 24,
+        "title": "Integrate AI Task Extraction",
+        "description": "Implement AI/NLP functionality to extract tasks from the thought dump input.",
+        "details": "Integrate OpenAI API to process the input text and extract actionable tasks. Create a function that sends the input to the AI and receives structured tasks in return.",
+        "testStrategy": "Test the AI integration by inputting various thought dumps and verifying the accuracy of extracted tasks.",
         "priority": "high",
         "dependencies": [
-          13
+          23
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 15,
-        "title": "Integrate Calendar APIs",
-        "description": "Set up integration with Google Calendar and Microsoft Graph for syncing user calendars.",
-        "details": "Implement OAuth2 for both Google and Microsoft Calendar APIs. Create endpoints to fetch and sync free/busy time slots.",
-        "testStrategy": "Test calendar integration by syncing events and checking for correct free/busy status.",
+        "id": 25,
+        "title": "Task Structuring and Review",
+        "description": "Develop the task structuring feature to allow users to review and confirm extracted tasks.",
+        "details": "Create a review page that displays the extracted tasks with options to edit, confirm, or discard them. Implement state management to handle user interactions.",
+        "testStrategy": "Ensure that users can edit, confirm, or discard tasks and that changes reflect correctly in the application state.",
         "priority": "medium",
         "dependencies": [
-          12
+          24
         ],
-        "status": "done",
+        "status": "pending",
         "subtasks": []
       },
       {
-        "id": 16,
-        "title": "Focus Session Timer Implementation",
-        "description": "Develop the focus session timer functionality, allowing users to start timed sessions for tasks.",
-        "details": "Implement a timer component that supports Pomodoro and custom lengths. Track session duration and interruptions.",
-        "testStrategy": "Run multiple focus sessions and verify that the timer functions correctly and logs interruptions.",
+        "id": 26,
+        "title": "Implement Calendar Integration",
+        "description": "Integrate Google and Microsoft Calendar APIs to sync user tasks and availability.",
+        "details": "Set up OAuth for Google and Microsoft Calendar APIs. Create functions to fetch user calendar data and sync free/busy slots. Implement auto-scheduling based on user availability.",
+        "testStrategy": "Test calendar integration by syncing tasks and checking for correct availability slots.",
         "priority": "high",
         "dependencies": [
-          14
+          25
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 17,
-        "title": "Energy & Distraction Tracking",
-        "description": "Create functionality for users to rate their energy levels and log distractions during focus sessions.",
-        "details": "Add UI elements for energy rating (1-5 scale) and distraction logging. Store this data in the energy_logs and distractions tables.",
-        "testStrategy": "Conduct focus sessions and ensure energy ratings and distractions are logged accurately.",
-        "priority": "medium",
-        "dependencies": [
-          16
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 18,
-        "title": "Task Completion Loop",
-        "description": "Implement the logic for marking tasks as complete, skipped, or deferred, and rescheduling incomplete tasks.",
-        "details": "Create functions to update task status and automatically reschedule incomplete tasks based on user preferences.",
-        "testStrategy": "Test task completion scenarios to ensure tasks are marked and rescheduled correctly.",
+        "id": 27,
+        "title": "Create Focus Session Timer",
+        "description": "Develop the focus session feature that allows users to start a timed session for any task.",
+        "details": "Implement a timer component that supports Pomodoro and custom lengths. Track session time and interruptions, and provide a UI for starting and stopping sessions.",
+        "testStrategy": "Verify timer functionality by starting and stopping sessions, ensuring accurate time tracking.",
         "priority": "high",
         "dependencies": [
-          17
+          26
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 19,
-        "title": "Reporting & Trends Dashboard",
-        "description": "Develop a dashboard to display weekly stats, energy curves, and distraction heatmaps.",
-        "details": "Create a reporting interface that aggregates data from tasks, focus sessions, and energy logs to provide insights to users.",
-        "testStrategy": "Verify that the dashboard displays accurate statistics and trends based on user data.",
+        "id": 28,
+        "title": "Energy and Distraction Tracking",
+        "description": "Implement features to track user energy levels and distractions during focus sessions.",
+        "details": "Create UI elements for users to rate their energy before and after sessions. Log distractions automatically and allow manual entries. Store this data in the Supabase database.",
+        "testStrategy": "Test energy rating and distraction logging by simulating focus sessions and checking data storage.",
         "priority": "medium",
         "dependencies": [
-          18
+          27
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 20,
-        "title": "User Interface Design and Styling",
-        "description": "Implement the UI using Next.js and TailwindCSS, ensuring a modern and responsive design.",
-        "details": "Design and implement the UI for all pages, including Thought Dump, Task Review, Focus Session, and Reporting, using TailwindCSS for styling.",
-        "testStrategy": "Conduct usability testing to ensure the UI is intuitive and responsive across devices.",
+        "id": 29,
+        "title": "Develop Reporting and Trends Dashboard",
+        "description": "Create a dashboard to display weekly stats, energy curves, and distraction heatmaps.",
+        "details": "Design a dashboard UI that aggregates data from the database and presents it visually. Use charts to display trends over time and provide personalized suggestions.",
+        "testStrategy": "Ensure that the dashboard accurately reflects user data and trends, validating against stored records.",
         "priority": "medium",
         "dependencies": [
-          11
+          28
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 30,
+        "title": "Implement Task Completion Loop",
+        "description": "Develop the functionality for users to mark tasks as complete, skipped, or deferred, with automatic rescheduling for incomplete tasks.",
+        "details": "Create a task management system that allows users to update task statuses. Implement logic for automatic rescheduling of incomplete tasks at the end of the day.",
+        "testStrategy": "Test task completion features by marking tasks in various states and verifying correct rescheduling.",
+        "priority": "high",
+        "dependencies": [
+          29
         ],
         "status": "pending",
         "subtasks": []
@@ -130,7 +132,7 @@
     ],
     "metadata": {
       "created": "2025-07-17T00:25:05.040Z",
-      "updated": "2025-07-22T09:32:36.184Z",
+      "updated": "2025-07-23T08:12:37.364Z",
       "description": "Tasks for master context"
     }
   }

@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Clock, MoreVertical, Edit3, Trash2, Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import { DayTimelineModal } from "./day-timeline-modal";
+import { DateTime } from "luxon";
 
 import type { Database } from "@/lib/supabase";
 
@@ -17,6 +18,7 @@ type Task = Database['public']['Tables']['tasks']['Row'];
 interface TaskCardProps {
   task: any; // normalized task object
   source: 'manual' | 'calendar_event' | 'calendar_task';
+  userTimezone?: string;
   isMinimal?: boolean;
   onClick?: () => void;
   onComplete?: () => void;
@@ -38,14 +40,29 @@ const archetypeColors = {
   collaborative: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-300"
 };
 
-export function TaskCard({ task, source, isMinimal = false, onClick, onComplete, onSkip, onUpdate, onDelete, onAddToCalendar }: TaskCardProps) {
+export function TaskCard({ task, source, userTimezone, isMinimal = false, onClick, onComplete, onSkip, onUpdate, onDelete, onAddToCalendar }: TaskCardProps) {
   const [isCompleted, setIsCompleted] = useState(task.status === "completed");
   const [showTimeline, setShowTimeline] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   
-  const scheduledTime = task.startTime
-    ? new Date(task.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    : 'Not scheduled';
+  // Unified scheduled time extraction
+  function getScheduledTime(t: any): string | null {
+    const zone = userTimezone || DateTime.local().zoneName;
+    let iso = t.scheduled_at || t.start_time || (t.start && (t.start.dateTime || t.start.date)) || null;
+    if (iso) {
+      // If date only (no time), treat as start of day
+      if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+        iso += 'T00:00:00';
+      }
+      try {
+        return DateTime.fromISO(iso, { zone }).toLocaleString(DateTime.TIME_SIMPLE);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+  const scheduledTime = getScheduledTime(task) || 'Not scheduled';
 
   const handleToggleComplete = () => {
     setIsCompleted(!isCompleted);
