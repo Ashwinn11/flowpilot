@@ -126,8 +126,7 @@ export class CalendarService {
       }
 
       // Build OAuth URL with calendar scopes
-      const redirectUri = 'http://localhost:3000/api/auth/calendar/callback'; // Hardcoded for debugging
-      console.log('🔍 Calendar OAuth Debug - Redirect URI being sent:', redirectUri);
+      const redirectUri = process.env.NEXT_PUBLIC_CALENDAR_REDIRECT_URI || 'http://localhost:3000/api/auth/calendar/callback';
       
       const params = new URLSearchParams({
         client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',

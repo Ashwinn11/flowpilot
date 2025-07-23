@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { AuthValidator, AuthSecurity, RateLimit } from '@/lib/auth-validation';
+import { generateErrorResponse } from '@/lib/api-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -113,14 +114,14 @@ export async function POST(request: NextRequest) {
       }
 
       return NextResponse.json(
-        AuthSecurity.generateSecureErrorResponse(signUpError, 'Failed to create account. Please try again.'),
+        generateErrorResponse({ error: signUpError, userMessage: 'Failed to create account. Please try again.', status: 400 }),
         { status: 400 }
       );
     }
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Failed to create user account' },
+        generateErrorResponse({ userMessage: 'Failed to create user account', status: 500 }),
         { status: 500 }
       );
     }
@@ -145,7 +146,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Signup error:', error);
     return NextResponse.json(
-      AuthSecurity.generateSecureErrorResponse(error, 'An unexpected error occurred during signup'),
+      generateErrorResponse({ error, userMessage: 'An unexpected error occurred during signup', status: 500 }),
       { status: 500 }
     );
   }

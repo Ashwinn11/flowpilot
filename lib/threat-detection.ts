@@ -459,6 +459,29 @@ export class ThreatDetection {
   clearEventCounts(): void {
     this.eventCounts.clear();
   }
+
+  private async updateThreatIntelFeeds() {
+    // Example: Fetch from a remote JSON feed (AbuseIPDB, Spamhaus, etc.)
+    try {
+      const res = await fetch(process.env.THREAT_INTEL_FEED_URL || '', { method: 'GET' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data.blockedIPs)) {
+        data.blockedIPs.forEach((ip: string) => this.blockedIPs.add(ip));
+      }
+      if (Array.isArray(data.blockedUserAgents)) {
+        // This assumes blockedUserAgents is an array of regex strings
+        data.blockedUserAgents.forEach((pattern: string) => {
+          try {
+            // Add to global or middleware blockedUserAgents if needed
+            // Example: SECURITY_CONFIG.blockedUserAgents.push(new RegExp(pattern, 'i'));
+          } catch {}
+        });
+      }
+    } catch (err) {
+      logger.error('Failed to update threat intelligence feeds', { error: (err as Error).message }, err as Error);
+    }
+  }
 }
 
 export const threatDetection = ThreatDetection.getInstance(); 

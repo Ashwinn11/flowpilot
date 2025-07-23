@@ -77,7 +77,9 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.1",
     "@types/qrcode": "^1.5.5",
+    "playwright": "^1.54.1",
     "ts-node": "^10.9.2"
   }
 }

@@ -61,13 +61,8 @@ class Logger {
   }
 
   private sanitizeError(error: Error): string {
-    if (this.isProduction) {
-      // In production, don't expose stack traces or sensitive error details
-      return error.message || 'Unknown error';
-    }
-    
-    // In development, include stack trace
-    return `${error.message}\n${error.stack}`;
+    // Always mask stack traces in user-facing responses
+    return error.message || 'Unknown error';
   }
 
   private log(level: LogLevel, levelName: string, message: string, context?: LogContext, error?: Error): void {

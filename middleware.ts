@@ -58,11 +58,21 @@ const SECURITY_CONFIG = {
   blockedIPs: new Set<string>(),
   
   // Allowed origins for CORS (more flexible for development)
-  allowedOrigins: [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://yourdomain.com' // Replace with your domain
-  ]
+  allowedOrigins: (() => {
+    if (process.env.ALLOWED_ORIGINS) {
+      const arr = process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean);
+      return arr.length > 0 ? arr : [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'https://yourdomain.com'
+      ];
+    }
+    return [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://yourdomain.com'
+    ];
+  })()
 };
 
 // Rate limiting storage
@@ -107,9 +117,11 @@ async function validateServerSession(request: NextRequest): Promise<boolean> {
     if (error || !session) return false;
     
     // Validate session is authenticated and not expired
-    return session.user?.aud === 'authenticated' && 
-           session.expires_at && 
-           session.expires_at > Math.floor(Date.now() / 1000);
+    return (
+      session.user?.aud === 'authenticated' &&
+      typeof session.expires_at === 'number' &&
+      session.expires_at > Math.floor(Date.now() / 1000)
+    );
            
   } catch (error) {
     logger.error('Session validation error in middleware', { error: (error as Error).message });
@@ -136,7 +148,7 @@ export async function middleware(request: NextRequest) {
                    'unknown';
   const userAgent = request.headers.get('user-agent') || 'unknown';
   const requestId = await securityManager.generateSecureRandom(16);
-  const path = request.nextUrl.pathname;
+  const path = request.nextUrl.pathname ?? '';
 
   // Log request start
   logger.info('Request started', {
@@ -171,11 +183,11 @@ export async function middleware(request: NextRequest) {
   
   const rateLimit = rateLimitStore.get(rateLimitKey);
   if (rateLimit) {
-    if (now > rateLimit.resetTime) {
+    if (typeof rateLimit.resetTime === 'number' && now > rateLimit.resetTime) {
       // Reset window
       rateLimit.count = 1;
       rateLimit.resetTime = now + windowMs;
-    } else if (rateLimit.count >= SECURITY_CONFIG.maxRequestsPerMinute) {
+    } else if (typeof rateLimit.count === 'number' && rateLimit.count >= SECURITY_CONFIG.maxRequestsPerMinute) {
       logger.warn('Rate limit exceeded', {
         requestId,
         clientIP,
@@ -193,7 +205,7 @@ export async function middleware(request: NextRequest) {
   // 4. CORS handling for API routes (more flexible)
   if (path.startsWith('/api/')) {
     const origin = request.headers.get('origin');
-    const isLocalhost = origin?.includes('localhost') || origin?.includes('127.0.0.1');
+    const isLocalhost = Boolean(origin && (origin.includes('localhost') || origin.includes('127.0.0.1')));
     
     if (origin && !SECURITY_CONFIG.allowedOrigins.includes(origin) && !isLocalhost) {
       logger.warn('CORS violation', {
@@ -252,7 +264,7 @@ export async function middleware(request: NextRequest) {
   // Add CORS headers for API routes
   if (path.startsWith('/api/')) {
     const origin = request.headers.get('origin');
-    const isLocalhost = origin?.includes('localhost') || origin?.includes('127.0.0.1');
+    const isLocalhost = Boolean(origin && (origin.includes('localhost') || origin.includes('127.0.0.1')));
     
     if (origin && (SECURITY_CONFIG.allowedOrigins.includes(origin) || isLocalhost)) {
       response.headers.set('Access-Control-Allow-Origin', origin);

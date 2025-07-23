@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { AuthValidator, AuthSecurity, RateLimit } from '@/lib/auth-validation';
+import { generateErrorResponse } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('User fetch error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      generateErrorResponse({ userMessage: 'Internal server error', status: 500 }),
       { status: 500 }
     );
   }
@@ -90,7 +91,7 @@ export async function PATCH(request: NextRequest) {
     
     if (userError || !user) {
       return NextResponse.json(
-        AuthSecurity.generateSecureErrorResponse(userError, 'Not authenticated'),
+        generateErrorResponse({ error: userError, userMessage: 'Not authenticated', status: 401 }),
         { status: 401 }
       );
     }
@@ -101,10 +102,7 @@ export async function PATCH(request: NextRequest) {
     const validation = AuthValidator.validateProfileUpdate(body);
     if (!validation.isValid) {
       return NextResponse.json(
-        { 
-          error: AuthValidator.getErrorMessage(validation.errors),
-          validationErrors: validation.errors
-        },
+        generateErrorResponse({ userMessage: AuthValidator.getErrorMessage(validation.errors), status: 400, validationErrors: validation.errors }),
         { status: 400 }
       );
     }
@@ -131,7 +129,7 @@ export async function PATCH(request: NextRequest) {
       if (profileError) {
         console.error('Profile update error:', profileError);
         return NextResponse.json(
-          { error: 'Failed to update profile' },
+          generateErrorResponse({ userMessage: 'Failed to update profile', status: 500 }),
           { status: 500 }
         );
       }
@@ -160,7 +158,7 @@ export async function PATCH(request: NextRequest) {
 
       if (emailUpdateError) {
         return NextResponse.json(
-          AuthSecurity.generateSecureErrorResponse(emailUpdateError, 'Failed to update email. Please check your input and try again.'),
+          generateErrorResponse({ error: emailUpdateError, userMessage: 'Failed to update email. Please check your input and try again.', status: 400 }),
           { status: 400 }
         );
       }
@@ -188,7 +186,7 @@ export async function PATCH(request: NextRequest) {
 
   } catch (error) {
     return NextResponse.json(
-      AuthSecurity.generateSecureErrorResponse(error, 'An unexpected error occurred while updating your profile'),
+      generateErrorResponse({ error, userMessage: 'An unexpected error occurred while updating your profile', status: 500 }),
       { status: 500 }
     );
   }

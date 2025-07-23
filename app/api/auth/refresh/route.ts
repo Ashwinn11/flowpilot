@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { generateErrorResponse } from '@/lib/api-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,11 +57,7 @@ export async function POST(request: NextRequest) {
     if (refreshError || !data.session) {
       console.error('Token refresh failed:', refreshError);
       return NextResponse.json(
-        { 
-          success: false, 
-          error: refreshError?.message || 'Failed to refresh session',
-          requiresLogin: true
-        },
+        generateErrorResponse({ error: refreshError, userMessage: 'Failed to refresh session', status: 401 }),
         { status: 401 }
       );
     }
@@ -88,11 +85,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Session refresh error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Internal server error during session refresh',
-        requiresLogin: false
-      },
+      generateErrorResponse({ error, userMessage: 'Internal server error during session refresh', status: 500 }),
       { status: 500 }
     );
   }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { AuthValidator, AuthSecurity, RateLimit } from '@/lib/auth-validation';
+import { generateErrorResponse } from '@/lib/api-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,10 +30,7 @@ export async function POST(request: NextRequest) {
     if (RateLimit.isRateLimited(`forgot_password_${clientIP}`, 3, 15 * 60 * 1000)) { // 3 attempts per 15 minutes
       const timeUntilReset = RateLimit.getTimeUntilReset(`forgot_password_${clientIP}`, 15 * 60 * 1000);
       return NextResponse.json(
-        { 
-          error: 'Too many password reset requests. Please try again later.',
-          retryAfter: Math.ceil(timeUntilReset / 1000)
-        },
+        generateErrorResponse({ userMessage: 'Too many password reset requests. Please try again later.', status: 429 }),
         { status: 429 }
       );
     }
@@ -44,10 +42,7 @@ export async function POST(request: NextRequest) {
     const emailValidation = AuthValidator.validateEmail(email);
     if (!emailValidation.isValid) {
       return NextResponse.json(
-        { 
-          error: AuthValidator.getErrorMessage(emailValidation.errors),
-          validationErrors: emailValidation.errors
-        },
+        generateErrorResponse({ userMessage: AuthValidator.getErrorMessage(emailValidation.errors), status: 400, validationErrors: emailValidation.errors }),
         { status: 400 }
       );
     }
@@ -65,7 +60,7 @@ export async function POST(request: NextRequest) {
     if (resetError) {
       console.error('Password reset error:', resetError);
       return NextResponse.json(
-        AuthSecurity.generateSecureErrorResponse(resetError, 'Failed to send password reset email. Please try again.'),
+        generateErrorResponse({ error: resetError, userMessage: 'Failed to send password reset email. Please try again.', status: 500 }),
         { status: 500 }
       );
     }
@@ -81,7 +76,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Forgot password error:', error);
     return NextResponse.json(
-      AuthSecurity.generateSecureErrorResponse(error, 'An unexpected error occurred while processing your request'),
+      generateErrorResponse({ error, userMessage: 'An unexpected error occurred while processing your request', status: 500 }),
       { status: 500 }
     );
   }

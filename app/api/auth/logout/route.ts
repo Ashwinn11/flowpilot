@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { auditLogger } from '@/lib/audit-logger';
+import { generateErrorResponse } from '@/lib/api-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,11 +32,7 @@ export async function POST(request: NextRequest) {
     if (signOutError) {
       console.error('Logout error:', signOutError);
       return NextResponse.json(
-        { 
-          success: false, 
-          error: signOutError.message || 'Failed to logout',
-          message: 'Logout failed. Please try again.'
-        },
+        generateErrorResponse({ error: signOutError, userMessage: 'Logout failed. Please try again.', status: 500 }),
         { status: 500 }
       );
     }
@@ -79,11 +76,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Logout error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Internal server error during logout',
-        message: 'An unexpected error occurred. Please try again.'
-      },
+      generateErrorResponse({ error, userMessage: 'An unexpected error occurred. Please try again.', status: 500 }),
       { status: 500 }
     );
   }

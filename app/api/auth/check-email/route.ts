@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { AuthValidator } from '@/lib/auth-validation';
+import { generateErrorResponse } from '@/lib/api-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Email check error:', error);
-    // Return exists: false on any error to be safe
-    return NextResponse.json({ exists: false });
+    // Return exists: false on any error to be safe, but log error in a standard way
+    return NextResponse.json(generateErrorResponse({ error, userMessage: 'Email check failed', status: 500 }));
   }
 } 

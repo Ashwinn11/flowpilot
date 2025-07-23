@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CalendarService } from '@/lib/calendar';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { logger } from '@/lib/logger';
+import { generateErrorResponse } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,8 +14,9 @@ export async function GET(request: NextRequest) {
     // Handle OAuth errors
     if (error) {
       logger.error('Calendar OAuth error', { error });
+      // Mask error details in redirect
       return NextResponse.redirect(
-        new URL(`/dashboard?calendar_error=${encodeURIComponent(error)}`, request.url)
+        new URL(`/dashboard?calendar_error=oauth_error`, request.url)
       );
     }
 
@@ -38,6 +40,7 @@ export async function GET(request: NextRequest) {
       clientSecretLength: clientSecret.length
     });
 
+    const redirectUri = process.env.NEXT_PUBLIC_CALENDAR_REDIRECT_URI || 'http://localhost:3000/api/auth/calendar/callback';
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
@@ -48,16 +51,13 @@ export async function GET(request: NextRequest) {
         client_secret: clientSecret,
         code,
         grant_type: 'authorization_code',
-        redirect_uri: 'http://localhost:3000/api/auth/calendar/callback', // Hardcoded to match OAuth initiation
+        redirect_uri: redirectUri,
       }),
     });
 
     if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.text();
-      logger.error('Failed to exchange code for tokens', { 
-        status: tokenResponse.status,
-        error: errorData 
-      });
+      logger.error('Failed to exchange code for tokens', { status: tokenResponse.status });
+      // Mask error details in redirect
       return NextResponse.redirect(
         new URL('/dashboard?calendar_error=token_exchange_failed', request.url)
       );

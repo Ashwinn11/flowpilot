@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { AuthValidator, AuthSecurity, RateLimit } from '@/lib/auth-validation';
+import { generateErrorResponse } from '@/lib/api-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,10 +30,7 @@ export async function POST(request: NextRequest) {
     if (RateLimit.isRateLimited(`reset_password_${clientIP}`, 3, 15 * 60 * 1000)) { // 3 attempts per 15 minutes
       const timeUntilReset = RateLimit.getTimeUntilReset(`reset_password_${clientIP}`, 15 * 60 * 1000);
       return NextResponse.json(
-        { 
-          error: 'Too many password reset attempts. Please try again later.',
-          retryAfter: Math.ceil(timeUntilReset / 1000)
-        },
+        generateErrorResponse({ userMessage: 'Too many password reset attempts. Please try again later.', status: 429 }),
         { status: 429 }
       );
     }
@@ -44,10 +42,7 @@ export async function POST(request: NextRequest) {
     const passwordValidation = AuthValidator.validatePassword(password);
     if (!passwordValidation.isValid) {
       return NextResponse.json(
-        { 
-          error: AuthValidator.getErrorMessage(passwordValidation.errors),
-          validationErrors: passwordValidation.errors
-        },
+        generateErrorResponse({ userMessage: AuthValidator.getErrorMessage(passwordValidation.errors), status: 400, validationErrors: passwordValidation.errors }),
         { status: 400 }
       );
     }
@@ -55,7 +50,7 @@ export async function POST(request: NextRequest) {
     // Validate password confirmation
     if (password !== confirmPassword) {
       return NextResponse.json(
-        { error: 'Passwords do not match' },
+        generateErrorResponse({ userMessage: 'Passwords do not match', status: 400 }),
         { status: 400 }
       );
     }
@@ -91,7 +86,7 @@ export async function POST(request: NextRequest) {
       // If it's a user_not_found error, the JWT token is invalid
       if (userError.status === 403 || userError.message.includes('User from sub claim in JWT does not exist')) {
         return NextResponse.json(
-          { error: 'Invalid or expired reset link. Please request a new password reset.' },
+          generateErrorResponse({ userMessage: 'Invalid or expired reset link. Please request a new password reset.', status: 401 }),
           { status: 401 }
         );
       }
@@ -100,7 +95,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       console.error('Reset password: No user found in session');
       return NextResponse.json(
-        { error: 'Invalid or expired reset link. Please request a new password reset.' },
+        generateErrorResponse({ userMessage: 'Invalid or expired reset link. Please request a new password reset.', status: 401 }),
         { status: 401 }
       );
     }
@@ -110,7 +105,7 @@ export async function POST(request: NextRequest) {
     if (session?.user?.aud !== 'authenticated') {
       console.error('Reset password: Invalid session type', session?.user?.aud);
       return NextResponse.json(
-        { error: 'Invalid or expired reset link. Please request a new password reset.' },
+        generateErrorResponse({ userMessage: 'Invalid or expired reset link. Please request a new password reset.', status: 401 }),
         { status: 401 }
       );
     }
@@ -131,13 +126,13 @@ export async function POST(request: NextRequest) {
       
       if (updateError.message.includes('Password should be at least')) {
         return NextResponse.json(
-          { error: 'Password does not meet security requirements. Please choose a stronger password.' },
+          generateErrorResponse({ userMessage: 'Password does not meet security requirements. Please choose a stronger password.', status: 400 }),
           { status: 400 }
         );
       }
 
       return NextResponse.json(
-        AuthSecurity.generateSecureErrorResponse(updateError, 'Failed to update password. Please try again.'),
+        generateErrorResponse({ error: updateError, userMessage: 'Failed to update password. Please try again.', status: 400 }),
         { status: 400 }
       );
     }
@@ -153,7 +148,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Reset password error:', error);
     return NextResponse.json(
-      AuthSecurity.generateSecureErrorResponse(error, 'An unexpected error occurred while resetting your password'),
+      generateErrorResponse({ error, userMessage: 'An unexpected error occurred while resetting your password', status: 500 }),
       { status: 500 }
     );
   }

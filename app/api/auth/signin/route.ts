@@ -6,6 +6,7 @@ import { AuthValidator, AuthSecurity, RateLimit, AuthErrorMessages } from '@/lib
 import { securityManager } from '@/lib/security';
 import { logger } from '@/lib/logger';
 import { threatDetection } from '@/lib/threat-detection';
+import { generateErrorResponse } from '@/lib/api-error';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -40,10 +41,10 @@ export async function POST(request: NextRequest) {
         clientIP,
         userAgent: request.headers.get('user-agent')?.substring(0, 100)
       });
-      return NextResponse.json({
-        error: 'Too many signin attempts',
-        message: 'Too many signin attempts. Please try again later.'
-      }, { status: 429 });
+      return NextResponse.json(
+        generateErrorResponse({ userMessage: 'Too many signin attempts. Please try again later.', status: 429 }),
+        { status: 429 }
+      );
     }
 
     // Check for account lockout
@@ -53,10 +54,10 @@ export async function POST(request: NextRequest) {
         clientIP,
         userAgent: request.headers.get('user-agent')?.substring(0, 100)
       });
-      return NextResponse.json({
-        error: 'Account temporarily locked',
-        message: 'Account temporarily locked due to too many failed attempts. Please try again later.'
-      }, { status: 429 });
+      return NextResponse.json(
+        generateErrorResponse({ userMessage: 'Account temporarily locked due to too many failed attempts. Please try again later.', status: 429 }),
+        { status: 429 }
+      );
     }
 
     const body = await request.json();
@@ -66,19 +67,19 @@ export async function POST(request: NextRequest) {
     const emailValidation = AuthValidator.validateEmail(email);
     if (!emailValidation.isValid) {
       securityManager.recordLoginAttempt(rateLimitKey);
-      return NextResponse.json({
-        error: 'Invalid email format',
-        message: emailValidation.errors[0]?.message || 'Invalid email format'
-      }, { status: 400 });
+      return NextResponse.json(
+        generateErrorResponse({ userMessage: emailValidation.errors[0]?.message || 'Invalid email format', status: 400 }),
+        { status: 400 }
+      );
     }
 
     const passwordValidation = AuthValidator.validatePassword(password);
     if (!passwordValidation.isValid) {
       securityManager.recordLoginAttempt(rateLimitKey);
-      return NextResponse.json({
-        error: 'Invalid password format',
-        message: passwordValidation.errors[0]?.message || 'Invalid password format'
-      }, { status: 400 });
+      return NextResponse.json(
+        generateErrorResponse({ userMessage: passwordValidation.errors[0]?.message || 'Invalid password format', status: 400 }),
+        { status: 400 }
+      );
     }
 
     // Attempt signin
@@ -136,16 +137,16 @@ export async function POST(request: NextRequest) {
 
       // If threat detected and action is block, return blocked response
       if (threatResult.threat && threatResult.action === 'block') {
-        return NextResponse.json({
-          error: 'Access temporarily blocked',
-          message: 'Too many failed attempts. Please try again later.'
-        }, { status: 429 });
+        return NextResponse.json(
+          generateErrorResponse({ userMessage: 'Too many failed attempts. Please try again later.', status: 429 }),
+          { status: 429 }
+        );
       }
 
-      return NextResponse.json({
-        error: 'Authentication failed',
-        message: AuthErrorMessages.INVALID_CREDENTIALS
-      }, { status: 401 });
+      return NextResponse.json(
+        generateErrorResponse({ userMessage: AuthErrorMessages.INVALID_CREDENTIALS, status: 401 }),
+        { status: 401 }
+      );
     }
 
     // Successful signin - clear rate limiting
@@ -191,9 +192,9 @@ export async function POST(request: NextRequest) {
       userAgent: request.headers.get('user-agent')?.substring(0, 100)
     });
 
-    return NextResponse.json({
-      error: 'An unexpected error occurred',
-      message: 'An unexpected error occurred during signin. Please try again.'
-    }, { status: 500 });
+    return NextResponse.json(
+      generateErrorResponse({ userMessage: 'An unexpected error occurred during signin. Please try again.', status: 500 }),
+      { status: 500 }
+    );
   }
 } 

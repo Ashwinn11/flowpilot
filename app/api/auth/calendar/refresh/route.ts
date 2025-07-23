@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { logger } from '@/lib/logger';
+import { generateErrorResponse } from '@/lib/api-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
     
     if (!accessToken) {
       return NextResponse.json(
-        { error: 'Unauthorized - No session token provided' },
+        generateErrorResponse({ userMessage: 'Unauthorized - No session token provided', status: 401 }),
         { status: 401 }
       );
     }
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: userError } = await supabase.auth.getUser(accessToken);
     if (userError || !user) {
       return NextResponse.json(
-        { error: 'Unauthorized - Invalid session' },
+        generateErrorResponse({ userMessage: 'Unauthorized - Invalid session', status: 401 }),
         { status: 401 }
       );
     }
@@ -40,14 +41,14 @@ export async function POST(request: NextRequest) {
 
     if (fetchError || !integration) {
       return NextResponse.json(
-        { error: 'Calendar integration not found' },
+        generateErrorResponse({ userMessage: 'Calendar integration not found', status: 404 }),
         { status: 404 }
       );
     }
 
     if (!integration.refresh_token) {
       return NextResponse.json(
-        { error: 'No refresh token available' },
+        generateErrorResponse({ userMessage: 'No refresh token available', status: 400 }),
         { status: 400 }
       );
     }
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
         error: errorData 
       });
       return NextResponse.json(
-        { error: 'Failed to refresh token' },
+        generateErrorResponse({ userMessage: 'Failed to refresh token', status: 400 }),
         { status: 400 }
       );
     }
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       logger.error('Failed to update refreshed calendar token', { error: updateError.message });
       return NextResponse.json(
-        { error: 'Failed to update token' },
+        generateErrorResponse({ userMessage: 'Failed to update token', status: 500 }),
         { status: 500 }
       );
     }
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     logger.error('Unexpected error in calendar token refresh', { error: error.message });
     return NextResponse.json(
-      { error: 'Internal server error' },
+      generateErrorResponse({ error, userMessage: 'Internal server error', status: 500 }),
       { status: 500 }
     );
   }
