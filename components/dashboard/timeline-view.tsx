@@ -12,11 +12,17 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "sonner";
 
 import type { Database } from "@/lib/supabase";
+import React from "react"; // Added for React.createElement
 
 type Task = Database['public']['Tables']['tasks']['Row'];
 
 interface TimelineViewProps {
-  tasks: Task[];
+  tasks: (Task | CalendarEvent)[];
+  onComplete?: (task: any) => void;
+  onSkip?: (task: any) => void;
+  onUpdate?: (task: any, updates: any) => void;
+  onDelete?: (task: any) => void;
+  onAddToCalendar?: (task: any) => void;
 }
 
 interface TimelineItem {
@@ -29,7 +35,7 @@ interface TimelineItem {
   event?: CalendarEvent;
 }
 
-export function TimelineView({ tasks }: TimelineViewProps) {
+export function TimelineView({ tasks, onComplete, onSkip, onUpdate, onDelete, onAddToCalendar }: TimelineViewProps) {
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -166,33 +172,32 @@ export function TimelineView({ tasks }: TimelineViewProps) {
     const items: TimelineItem[] = [];
 
     // Add tasks to timeline
-    tasks.forEach(task => {
-      items.push({
-        id: `task-${task.id}`,
-        type: 'task',
-        title: task.title,
-        time: task.scheduled_at ? new Date(task.scheduled_at) : undefined,
-        duration: task.duration,
-        task,
-      });
-    });
+    tasks.forEach(item => {
+      if ('title' in item && 'scheduled_at' in item) { // Check if it's a Task
+        items.push({
+          id: `task-${item.id}`,
+          type: 'task',
+          title: item.title,
+          time: item.scheduled_at ? new Date(item.scheduled_at) : undefined,
+          duration: item.duration,
+          task: item,
+        });
+      } else if ('summary' in item && 'start' in item) { // Check if it's a CalendarEvent
+        const startTime = item.start.dateTime ? new Date(item.start.dateTime) : undefined;
+        const endTime = item.end.dateTime ? new Date(item.end.dateTime) : undefined;
+        const duration = startTime && endTime 
+          ? Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60))
+          : undefined;
 
-    // Add calendar events to timeline
-    calendarEvents.forEach(event => {
-      const startTime = event.start.dateTime ? new Date(event.start.dateTime) : undefined;
-      const endTime = event.end.dateTime ? new Date(event.end.dateTime) : undefined;
-      const duration = startTime && endTime 
-        ? Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60))
-        : undefined;
-
-      items.push({
-        id: `event-${event.id}`,
-        type: 'event',
-        title: event.summary || 'Untitled Event',
-        time: startTime,
-        duration,
-        event,
-      });
+        items.push({
+          id: `event-${item.id}`,
+          type: 'event',
+          title: item.summary || 'Untitled Event',
+          time: startTime,
+          duration,
+          event: item,
+        });
+      }
     });
 
     // Sort by time, putting items without time at the end
@@ -205,6 +210,9 @@ export function TimelineView({ tasks }: TimelineViewProps) {
   };
 
   const timelineItems = createTimelineItems();
+
+  // Debug log
+  console.log('timelineItems', timelineItems);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', {
@@ -223,150 +231,133 @@ export function TimelineView({ tasks }: TimelineViewProps) {
     return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
   };
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <Card className="border-0 shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Calendar className="w-5 h-5 mr-2 text-blue-600" />
-              Task Section
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={refreshing}
-              >
-                {refreshing ? (
-                  <LoadingSpinner className="h-3 w-3 mr-1" />
-                ) : (
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                )}
-                Refresh
-              </Button>
-              {debugInfo && (
+  try {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Calendar className="w-5 h-5 mr-2 text-blue-600" />
+                Task Section
+              </div>
+              <div className="flex items-center space-x-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    console.log('🔍 [Timeline Debug Info]', debugInfo);
-                    alert(JSON.stringify(debugInfo, null, 2));
-                  }}
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  title="Refresh calendar events"
+                  aria-label="Refresh calendar events"
                 >
-                  Debug Info
+                  {refreshing ? (
+                    <LoadingSpinner className="h-3 w-3 mr-1" />
+                  ) : (
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                  )}
+                  Refresh
                 </Button>
-              )}
-            </div>
-          </CardTitle>
-          {debugInfo && (
-            <div className="text-xs text-slate-600 dark:text-slate-400">
-              Calendar: {debugInfo.integration ? '✅ Connected' : '❌ Not connected'} | 
-              Events: {debugInfo.eventCount} | 
-              Tasks: {tasks.length}
-              {debugInfo.breakdown && (
-                <span> | Types: {Object.entries(debugInfo.breakdown).map(([type, count]: [string, any]) => `${count} ${type}`).join(', ')}</span>
-              )}
-              {debugInfo.error && <span className="text-red-500"> | Error: {debugInfo.error}</span>}
-            </div>
-          )}
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <LoadingSpinner className="h-6 w-6" />
-              <span className="ml-2 text-sm text-slate-600">Loading calendar events...</span>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {timelineItems.map((item, index) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex items-start space-x-3"
-                >
-                  {/* Time indicator */}
-                  <div className="flex-shrink-0 w-16 text-right">
-                    {item.time ? (
-                      <div className="text-xs text-slate-600 dark:text-slate-400">
-                        {formatTime(item.time)}
-                      </div>
-                    ) : (
-                      <div className="text-xs text-slate-400">
-                        Unscheduled
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1">
-                    {item.type === 'task' && item.task ? (
-                      <TaskCard task={item.task} isMinimal={true} />
-                    ) : item.type === 'event' && item.event ? (
-                      (() => {
-                        const styling = getEventStyling(item.event.calendarType || 'primary');
-                        const IconComponent = styling.icon;
-                        
-                        return (
-                          <div className={`border ${styling.borderColor} rounded-lg p-3 ${styling.bgColor}`}>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-2">
-                                <IconComponent className={`w-4 h-4 ${styling.iconColor}`} />
-                                <span className="font-medium text-sm text-slate-900 dark:text-slate-100">
-                                  {item.title}
-                                </span>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                {item.duration && (
-                                  <Badge variant="outline" className="text-xs">
-                                    {formatDuration(item.duration)}
-                                  </Badge>
-                                )}
-                                <Badge variant="secondary" className={`text-xs ${styling.badgeColor}`}>
-                                  <ExternalLink className="w-3 h-3 mr-1" />
-                                  {styling.label}
-                                </Badge>
-                              </div>
-                            </div>
-                            {item.event.description && (
-                              <p className="text-xs text-slate-600 dark:text-slate-400 mt-2 truncate">
-                                {item.event.description}
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })()
-                    ) : null}
-                  </div>
-                </motion.div>
-              ))}
-              
-              {timelineItems.length === 0 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-center py-12"
-                >
-                  <Calendar className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-                  <p className="text-slate-500 dark:text-slate-400">
-                    No tasks, events, birthdays, or calendar items for today
-                  </p>
-                  <p className="text-xs text-slate-400 mt-2">
-                    Try refreshing or check if your calendar is connected. We fetch from all your calendars including birthdays and tasks.
-                  </p>
-                </motion.div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
+                {debugInfo && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      console.log('🔍 [Timeline Debug Info]', debugInfo);
+                      alert(JSON.stringify(debugInfo, null, 2));
+                    }}
+                    title="View debug information"
+                    aria-label="View debug information"
+                  >
+                    Debug Info
+                  </Button>
+                )}
+              </div>
+            </CardTitle>
+            {debugInfo && (
+              <div className="text-xs text-slate-600 dark:text-slate-400">
+                Calendar: {debugInfo.integration ? '✅ Connected' : '❌ Not connected'} | 
+                Events: {debugInfo.eventCount} | 
+                Tasks: {tasks.length}
+                {debugInfo.breakdown && (
+                  <span> | Types: {Object.entries(debugInfo.breakdown).map(([type, count]: [string, any]) => `${count} ${type}`).join(', ')}</span>
+                )}
+                {debugInfo.error && <span className="text-red-500"> | Error: {debugInfo.error}</span>}
+              </div>
+            )}
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <LoadingSpinner className="h-6 w-6" />
+                <span className="ml-2 text-sm text-slate-600">Loading calendar events...</span>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {timelineItems.map((item, index) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="flex items-start space-x-3"
+                  >
+                    {/* Time indicator */}
+                    <div className="flex-shrink-0 w-16 text-right">
+                      {item.time ? (
+                        <div className="text-xs text-slate-600 dark:text-slate-400">
+                          {formatTime(item.time)}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-slate-400">
+                          Not scheduled
+                        </div>
+                      )}
+                    </div>
+                    {/* Use TaskCard for all items */}
+                    <div className="flex-1">
+                      <TaskCard
+                        task={item.task || item.event}
+                        source={item.type === 'task' ? 'manual' : (item.event?.eventType === 'task' ? 'calendar_task' : 'calendar_event')}
+                        onComplete={item.type === 'task' ? () => onComplete && onComplete(item.task) : undefined}
+                        onSkip={item.type === 'task' ? () => onSkip && onSkip(item.task) : undefined}
+                        onUpdate={item.type === 'task' ? (updates => onUpdate && onUpdate(item.task, updates)) : undefined}
+                        onDelete={item.type === 'task' ? () => onDelete && onDelete(item.task) : undefined}
+                        onAddToCalendar={item.type === 'task' && onAddToCalendar ? () => onAddToCalendar(item.task) : undefined}
+                      />
+                    </div>
+                  </motion.div>
+                ))}
+                
+                {timelineItems.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-center py-12"
+                  >
+                    <Calendar className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+                    <p className="text-slate-500 dark:text-slate-400">
+                      No tasks, events, birthdays, or calendar items for today
+                    </p>
+                    <p className="text-xs text-slate-400 mt-2">
+                      Try refreshing or check if your calendar is connected. We fetch from all your calendars including birthdays and tasks.
+                    </p>
+                  </motion.div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  } catch (err) {
+    return (
+      <div className="p-4 bg-red-100 text-red-800 rounded">
+        Error rendering timeline: {err instanceof Error ? err.message : String(err)}
+      </div>
+    );
+  }
 }

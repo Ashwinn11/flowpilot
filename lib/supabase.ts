@@ -1,27 +1,21 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// Define any types or interfaces here if needed
+// Example:
+// export type CalendarTokenRow = {
+//   id: string;
+//   user_id: string;
+//   title: string;
+//   calendar_sync_status: 'pending' | 'synced' | 'failed' | 'conflict';
+//   created_at: string;
+//   updated_at: string;
+// };
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 // Create Supabase client with optimized configuration for browser
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    flowType: 'implicit'
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
-  },
-  global: {
-    headers: {
-      'X-Client-Info': 'flowpilot-web'
-    }
-  }
-})
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export type Database = {
   public: {
@@ -87,8 +81,13 @@ export type Database = {
           archetype: 'deep' | 'admin' | 'creative' | 'reactive' | 'collaborative' | 'analytical'
           status: 'pending' | 'in_progress' | 'completed' | 'skipped'
           scheduled_at: string | null
+          start_time: string | null
+          end_time: string | null
           completed_at: string | null
           skipped_count: number
+          calendar_event_id: string | null
+          calendar_task_id: string | null
+          calendar_sync_status: 'pending' | 'synced' | 'failed' | 'conflict'
           created_at: string
           updated_at: string
         }
@@ -102,8 +101,13 @@ export type Database = {
           archetype?: 'deep' | 'admin' | 'creative' | 'reactive' | 'collaborative' | 'analytical'
           status?: 'pending' | 'in_progress' | 'completed' | 'skipped'
           scheduled_at?: string | null
+          start_time?: string | null
+          end_time?: string | null
           completed_at?: string | null
           skipped_count?: number
+          calendar_event_id?: string | null
+          calendar_task_id?: string | null
+          calendar_sync_status?: 'pending' | 'synced' | 'failed' | 'conflict'
           created_at?: string
           updated_at?: string
         }
@@ -117,8 +121,13 @@ export type Database = {
           archetype?: 'deep' | 'admin' | 'creative' | 'reactive' | 'collaborative' | 'analytical'
           status?: 'pending' | 'in_progress' | 'completed' | 'skipped'
           scheduled_at?: string | null
+          start_time?: string | null
+          end_time?: string | null
           completed_at?: string | null
           skipped_count?: number
+          calendar_event_id?: string | null
+          calendar_task_id?: string | null
+          calendar_sync_status?: 'pending' | 'synced' | 'failed' | 'conflict'
           created_at?: string
           updated_at?: string
         }

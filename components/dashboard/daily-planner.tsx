@@ -19,6 +19,7 @@ import type { Database } from "@/lib/supabase";
 import type { CalendarEvent } from "@/lib/calendar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { supabase } from '@/lib/supabase';
 
 type Task = Database['public']['Tables']['tasks']['Row'];
 
@@ -37,6 +38,66 @@ function getGreeting() {
   return 'evening';
 }
 
+// Helper to check if a date is today
+function isToday(dateStr: string | undefined) {
+  if (!dateStr) return false;
+  const date = new Date(dateStr);
+  const now = new Date();
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  );
+}
+
+// Helper to find a manual task by calendar event/task ID
+function findManualTaskByCalendarId(calendarId: string, type: 'calendar_event' | 'calendar_task', tasks: any[]) {
+  return tasks.find(t =>
+    (type === 'calendar_event' && t.calendar_event_id === calendarId) ||
+    (type === 'calendar_task' && t.calendar_task_id === calendarId)
+  );
+}
+
+// Helper to create or update a manual task for a calendar item
+async function upsertManualTaskForCalendarItem({
+  calendarItem,
+  type,
+  status,
+  userId,
+  TaskService,
+  setTasks,
+  tasks
+}: {
+  calendarItem: any,
+  type: 'calendar_event' | 'calendar_task',
+  status: string,
+  userId: string,
+  TaskService: any,
+  setTasks: any,
+  tasks: any[]
+}) {
+  let manualTask = findManualTaskByCalendarId(calendarItem.id, type, tasks);
+  if (manualTask) {
+    // Update status
+    const updatedTask = await TaskService.updateTask(manualTask.id, { status });
+    setTasks((prev: any[]) => prev.map(t => t.id === manualTask.id ? updatedTask : t));
+    return updatedTask;
+  } else {
+    // Create new manual task with reference to calendar item
+    const newTask = await TaskService.scheduleTask(userId, {
+      title: calendarItem.summary || calendarItem.title || '',
+      description: calendarItem.description || '',
+      duration: 60, // default or extract from calendarItem
+      priority: 'medium',
+      archetype: 'reactive',
+      status,
+      ...(type === 'calendar_event' ? { calendar_event_id: calendarItem.id } : { calendar_task_id: calendarItem.id })
+    });
+    setTasks((prev: any[]) => [...prev, newTask]);
+    return newTask;
+  }
+}
+
 export function DailyPlanner({ calendarData }: DailyPlannerProps) {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -48,6 +109,14 @@ export function DailyPlanner({ calendarData }: DailyPlannerProps) {
   const [suggestedTasks, setSuggestedTasks] = useState<string[]>([]);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const thoughtInputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Filter calendar events/tasks for today only (inside component)
+  const todayEvents = (calendarData?.events || []).filter((e: any) =>
+    isToday(e.start?.dateTime || e.start?.date)
+  );
+  const todayCalendarTasks = (calendarData?.tasks || []).filter((e: any) =>
+    isToday(e.start?.dateTime || e.start?.date)
+  );
 
   const completedTasks = tasks.filter(task => task.status === "completed").length;
   const totalTasks = tasks.length;
@@ -224,6 +293,116 @@ export function DailyPlanner({ calendarData }: DailyPlannerProps) {
     setThoughtDump("");
   };
 
+  const handleUnifiedTaskComplete = async (task: any, source: string) => {
+    if (!user) return;
+    if (source === 'manual') {
+      await handleTaskComplete(task.id);
+    } else {
+      await upsertManualTaskForCalendarItem({
+        calendarItem: task,
+        type: source as 'calendar_event' | 'calendar_task',
+        status: 'completed',
+        userId: user.id,
+        TaskService,
+        setTasks,
+        tasks
+      });
+    }
+  };
+
+  const handleUnifiedTaskSkip = async (task: any, source: string) => {
+    if (!user) return;
+    if (source === 'manual') {
+      await handleTaskSkip(task.id);
+    } else {
+      await upsertManualTaskForCalendarItem({
+        calendarItem: task,
+        type: source as 'calendar_event' | 'calendar_task',
+        status: 'skipped',
+        userId: user.id,
+        TaskService,
+        setTasks,
+        tasks
+      });
+    }
+  };
+
+  const handleUnifiedTaskUpdate = async (task: any, source: string, updates: any) => {
+    if (!user) return;
+    if (source === 'manual') {
+      await handleTaskUpdate(task.id, updates);
+    } else {
+      await upsertManualTaskForCalendarItem({
+        calendarItem: task,
+        type: source as 'calendar_event' | 'calendar_task',
+        status: updates.status || 'pending',
+        userId: user.id,
+        TaskService,
+        setTasks,
+        tasks
+      });
+    }
+  };
+
+  const handleAddToCalendar = async (task: any) => {
+    if (!user) {
+      toast.error('You must be logged in to add a task to your calendar.');
+      return;
+    }
+    
+    try {
+      // If no start_time, set to today at 10:00 AM
+      let startTime = task.start_time;
+      if (!startTime) {
+        const now = new Date();
+        now.setHours(10, 0, 0, 0); // 10:00 AM today
+        startTime = now.toISOString();
+      }
+      const duration = task.duration || 60;
+      // Get the user's access token from Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        toast.error('You must be logged in to add a task to your calendar.');
+        return;
+      }
+      const res = await fetch('/api/calendar/add-task', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          title: task.title,
+          description: task.description,
+          startTime,
+          duration,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to add to calendar');
+      const data = await res.json();
+      if (!data.calendarEventId) throw new Error('No calendar event ID returned');
+      // Update the manual task in the database with sync status
+      const updatedTask = await TaskService.updateTask(task.id, { 
+        calendar_event_id: data.calendarEventId,
+        calendar_sync_status: 'synced'
+      });
+      setTasks((prev: any[]) => prev.map(t => t.id === task.id ? updatedTask : t));
+      toast.success(`Task added to your calendar! ${data.eventUrl ? 'View in calendar.' : ''}`);
+    } catch (err: any) {
+      // Update task with failed sync status
+      if (task.id) {
+        try {
+          await TaskService.updateTask(task.id, { calendar_sync_status: 'failed' });
+        } catch (syncError) {
+          console.error('Failed to update sync status:', syncError);
+        }
+      }
+      toast.error(err.message || 'Failed to add task to calendar');
+    }
+  };
+
   // Normalize mergedTasks for unified display and sorting
   const mergedTasks = [
     ...tasks.map(t => ({
@@ -234,7 +413,7 @@ export function DailyPlanner({ calendarData }: DailyPlannerProps) {
       source: 'manual' as const,
       raw: t
     })),
-    ...(calendarData?.events || []).map(e => ({
+    ...todayEvents.map(e => ({
       id: e.id,
       title: e.summary || '',
       description: e.description || '',
@@ -242,7 +421,7 @@ export function DailyPlanner({ calendarData }: DailyPlannerProps) {
       source: 'calendar_event' as const,
       raw: e
     })),
-    ...(calendarData?.tasks || []).map(e => ({
+    ...todayCalendarTasks.map(e => ({
       id: e.id,
       title: e.summary || '',
       description: e.description || '',
@@ -259,8 +438,73 @@ export function DailyPlanner({ calendarData }: DailyPlannerProps) {
 
   return (
     <div className="space-y-6">
-      {/* Thought Dump Card (always visible) */}
-      <Card className="border-0 shadow-lg">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+            Good {getGreeting()}, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'there'}! 👋
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
+            You have {totalTasks - completedTasks} tasks remaining today
+          </p>
+        </div>
+      </div>
+
+      {/* Progress Overview - move to top below header */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        {[
+          {
+            title: "Today's Progress",
+            value: `${completedTasks}/${totalTasks}`,
+            icon: CheckCircle,
+            color: "blue",
+            gradient: "from-blue-50 to-teal-50 dark:from-blue-900/20 dark:to-teal-900/20",
+            progress: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0
+          },
+          {
+            title: "Focus Time",
+            value: `${Math.round(tasks.reduce((sum, task) => sum + task.duration, 0) / 60 * 10) / 10}h`,
+            icon: Clock,
+            color: "teal",
+            subtitle: "Deep work scheduled"
+          },
+          {
+            title: "Streak",
+            value: "12",
+            icon: Target,
+            color: "orange",
+            subtitle: "Productive days"
+          }
+        ].map((stat, index) => (
+          <div key={stat.title}>
+            <Card className={`border-0 shadow-lg ${stat.gradient || ''} hover:shadow-xl transition-all duration-300`}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-slate-700 dark:text-slate-300">{stat.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <span className={`text-2xl font-bold text-${stat.color}-600`}>{stat.value}</span>
+                  <stat.icon className={`w-8 h-8 text-${stat.color}-600`} />
+                </div>
+                {stat.progress !== undefined && (
+                  <div className={`w-full bg-${stat.color}-200 rounded-full h-2 mt-3`}>
+                    <div 
+                      className={`bg-gradient-to-r from-${stat.color}-600 to-teal-600 h-2 rounded-full transition-all duration-1000`}
+                      style={{ width: `${stat.progress}%` }}
+                    />
+                  </div>
+                )}
+                {stat.subtitle && (
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{stat.subtitle}</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        ))}
+      </div>
+
+      {/* Thought Dump Card (always visible, now below progress) */}
+      <Card className="border-0 shadow-lg mb-6">
         <CardHeader>
           <CardTitle className="flex items-center">
             <span role="img" aria-label="lightbulb" className="mr-2">💡</span>
@@ -337,176 +581,34 @@ export function DailyPlanner({ calendarData }: DailyPlannerProps) {
         </Dialog>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-            Good {getGreeting()}, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'there'}! 👋
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
-            You have {totalTasks - completedTasks} tasks remaining today
+      {/* Unified Today's Schedule Section (now below thought dump) */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Calendar className="w-5 h-5 mr-2 text-blue-600" />
+            Today's Schedule
+          </CardTitle>
+          <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm">
+            All your tasks and events for today, from calendar and manual entries.
           </p>
-        </div>
-        
-        <div className="flex items-center space-x-3">
-          <Button
-            variant={viewMode === "cards" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("cards")}
-          >
-            <Target className="w-4 h-4 mr-2" />
-            Focus View
-          </Button>
-          <Button
-            variant={viewMode === "timeline" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("timeline")}
-          >
-            <Clock className="w-4 h-4 mr-2" />
-            Task Section
-          </Button>
-        </div>
-      </div>
-
-      {loading ? (
-        <DashboardSkeleton />
-      ) : (
-        <>
-          {/* Progress Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                title: "Today's Progress",
-                value: `${completedTasks}/${totalTasks}`,
-                icon: CheckCircle,
-                color: "blue",
-                gradient: "from-blue-50 to-teal-50 dark:from-blue-900/20 dark:to-teal-900/20",
-                progress: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0
-              },
-              {
-                title: "Focus Time",
-                value: `${Math.round(tasks.reduce((sum, task) => sum + task.duration, 0) / 60 * 10) / 10}h`,
-                icon: Clock,
-                color: "teal",
-                subtitle: "Deep work scheduled"
-              },
-              {
-                title: "Streak",
-                value: "12",
-                icon: Target,
-                color: "orange",
-                subtitle: "Productive days"
-              }
-            ].map((stat, index) => (
-              <div key={stat.title}>
-                <Card className={`border-0 shadow-lg ${stat.gradient || ''} hover:shadow-xl transition-all duration-300`}>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium text-slate-700 dark:text-slate-300">{stat.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <span className={`text-2xl font-bold text-${stat.color}-600`}>{stat.value}</span>
-                      <stat.icon className={`w-8 h-8 text-${stat.color}-600`} />
-                    </div>
-                    {stat.progress !== undefined && (
-                      <div className={`w-full bg-${stat.color}-200 rounded-full h-2 mt-3`}>
-                        <div 
-                          className={`bg-gradient-to-r from-${stat.color}-600 to-teal-600 h-2 rounded-full transition-all duration-1000`}
-                          style={{ width: `${stat.progress}%` }}
-                        />
-                      </div>
-                    )}
-                    {stat.subtitle && (
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{stat.subtitle}</p>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            ))}
-          </div>
-
-          {/* Main Content */}
-          <AnimatePresence mode="wait">
-            {viewMode === "cards" ? (
-              <motion.div
-                key="cards"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-6"
-              >
-                {/* Top 3 Focus Tasks (from mergedTasks) */}
-                <Card className="border-0 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Target className="w-5 h-5 mr-2 text-blue-600" />
-                      Top 3 Focus Tasks
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {mergedTasks.slice(0, 3).map((task, index) => (
-                        <motion.div
-                          key={task.id || index}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="flex items-center space-x-3"
-                        >
-                          <Badge variant="secondary" className="w-8 h-8 rounded-full flex items-center justify-center">
-                            {index + 1}
-                          </Badge>
-                          <div className="flex-1">
-                            <TaskCard 
-                              task={task.raw}
-                              source={task.source}
-                              onComplete={task.source === 'manual' ? () => handleTaskComplete(task.id) : undefined}
-                              onSkip={task.source === 'manual' ? () => handleTaskSkip(task.id) : undefined}
-                              onUpdate={task.source === 'manual' ? (updates) => handleTaskUpdate(task.id, updates) : undefined}
-                              onDelete={task.source === 'manual' ? () => handleTaskDelete(task.id) : undefined}
-                            />
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* All Tasks (from mergedTasks) */}
-                <Card className="border-0 shadow-lg">
-                  <CardHeader>
-                    <CardTitle>All Tasks</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {mergedTasks.map((task, index) => (
-                        <motion.div
-                          key={task.id || index}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.05 }}
-                        >
-                          <TaskCard 
-                            task={task.raw}
-                            source={task.source}
-                            onComplete={task.source === 'manual' ? () => handleTaskComplete(task.id) : undefined}
-                            onSkip={task.source === 'manual' ? () => handleTaskSkip(task.id) : undefined}
-                            onUpdate={task.source === 'manual' ? (updates) => handleTaskUpdate(task.id, updates) : undefined}
-                            onDelete={task.source === 'manual' ? () => handleTaskDelete(task.id) : undefined}
-                          />
-                        </motion.div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ) : (
-              <TimelineView tasks={mergedTasks.map(t => t.raw)} />
-            )}
-          </AnimatePresence>
-        </>
-      )}
+        </CardHeader>
+        <CardContent>
+          {mergedTasks.length === 0 ? (
+            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+              No tasks or events scheduled for today. Add a task or connect your calendar!
+            </div>
+          ) : (
+            <TimelineView
+              tasks={mergedTasks.map(t => t.raw)}
+              onComplete={task => handleUnifiedTaskComplete(task, task.calendar_event_id ? 'calendar_event' : task.calendar_task_id ? 'calendar_task' : 'manual')}
+              onSkip={task => handleUnifiedTaskSkip(task, task.calendar_event_id ? 'calendar_event' : task.calendar_task_id ? 'calendar_task' : 'manual')}
+              onUpdate={(task, updates) => handleUnifiedTaskUpdate(task, task.calendar_event_id ? 'calendar_event' : task.calendar_task_id ? 'calendar_task' : 'manual', updates)}
+              onDelete={task => handleTaskDelete(task.id)}
+              onAddToCalendar={task => handleAddToCalendar(task)}
+            />
+          )}
+        </CardContent>
+      </Card>
 
       <EndOfDayModal
         isOpen={showEndOfDay}

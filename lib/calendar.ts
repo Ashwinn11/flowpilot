@@ -20,6 +20,7 @@ export interface CalendarEvent {
     responseStatus: string;
   }>;
   status: string;
+  location?: string;
   transparency?: string; // 'transparent' means the event doesn't block time
   calendarId?: string; // Which calendar this event comes from
   calendarType?: string; // Type of calendar: 'primary', 'birthday', 'task', 'holiday', 'other'
@@ -59,8 +60,8 @@ export interface CalendarIntegration {
 
 export class CalendarService {
   private static readonly CALENDAR_SCOPES = [
-    'https://www.googleapis.com/auth/calendar.readonly',
-    'https://www.googleapis.com/auth/tasks.readonly'
+    'https://www.googleapis.com/auth/calendar',
+    'https://www.googleapis.com/auth/tasks'
   ];
 
   private static readonly GOOGLE_CALENDAR_API_BASE = 'https://www.googleapis.com/calendar/v3';

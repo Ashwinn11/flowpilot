@@ -45,6 +45,11 @@ CREATE TABLE IF NOT EXISTS tasks (
   archetype text, -- e.g., 'reactive', 'deep work'
   priority text, -- 'high', 'medium', 'low'
   status text, -- 'pending', 'completed', 'skipped'
+  calendar_event_id text, -- Google Calendar event ID
+  calendar_task_id text, -- Google Tasks ID  
+  calendar_sync_status text DEFAULT 'pending', -- 'pending', 'synced', 'failed', 'conflict'
+  completed_at timestamp,
+  skipped_count integer DEFAULT 0,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now()
 );
@@ -107,6 +112,14 @@ CREATE INDEX IF NOT EXISTS idx_distractions_focus_session_id ON distractions(foc
 CREATE INDEX IF NOT EXISTS idx_energy_logs_user_id ON energy_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_energy_logs_focus_session_id ON energy_logs(focus_session_id);
 CREATE INDEX IF NOT EXISTS idx_calendar_tokens_user_id ON calendar_tokens(user_id);
+
+-- Calendar integration indexes
+CREATE INDEX IF NOT EXISTS idx_tasks_calendar_event_id ON tasks(calendar_event_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_calendar_task_id ON tasks(calendar_task_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_sync_status ON tasks(calendar_sync_status);
+CREATE INDEX IF NOT EXISTS idx_tasks_start_time ON tasks(start_time);
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_completed_at ON tasks(completed_at);
 
 -- Enable RLS and add policies for all user tables
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;

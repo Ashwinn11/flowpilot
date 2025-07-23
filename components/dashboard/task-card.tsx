@@ -23,6 +23,7 @@ interface TaskCardProps {
   onSkip?: () => void;
   onUpdate?: (updates: any) => void;
   onDelete?: () => void;
+  onAddToCalendar?: () => void;
 }
 
 const priorityColors = {
@@ -37,7 +38,7 @@ const archetypeColors = {
   collaborative: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-300"
 };
 
-export function TaskCard({ task, source, isMinimal = false, onClick, onComplete, onSkip, onUpdate, onDelete }: TaskCardProps) {
+export function TaskCard({ task, source, isMinimal = false, onClick, onComplete, onSkip, onUpdate, onDelete, onAddToCalendar }: TaskCardProps) {
   const [isCompleted, setIsCompleted] = useState(task.status === "completed");
   const [showTimeline, setShowTimeline] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -98,11 +99,9 @@ export function TaskCard({ task, source, isMinimal = false, onClick, onComplete,
               )}
               {/* Show calendar icon for calendar_event or calendar_task */}
               {source !== 'manual' && (
-                <div className="mt-1">
-                  <span className="mt-1" title={source === 'calendar_event' ? 'Calendar Event' : 'Calendar Task'}>
-                    <Calendar className="w-5 h-5 text-blue-500" />
-                  </span>
-                </div>
+                <span className="mt-1" title={source === 'calendar_event' ? 'Calendar Event' : 'Calendar Task'}>
+                  <Calendar className="w-5 h-5 text-blue-500" />
+                </span>
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-2">
@@ -115,6 +114,12 @@ export function TaskCard({ task, source, isMinimal = false, onClick, onComplete,
                       {source === 'calendar_event' ? 'Calendar Event' : 'Calendar Task'}
                     </Badge>
                   )}
+                  {/* Show badge if manual task is linked to calendar */}
+                  {source === 'manual' && (task.calendar_event_id || task.calendar_task_id) && (
+                    <Badge variant="outline" className="ml-2 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                      In Calendar
+                    </Badge>
+                  )}
                 </div>
                 <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">
                   {task.description}
@@ -122,6 +127,18 @@ export function TaskCard({ task, source, isMinimal = false, onClick, onComplete,
                 <div className="text-xs text-slate-500 dark:text-slate-400">
                   {scheduledTime}
                 </div>
+                {/* Add to Calendar button for manual tasks not yet in calendar */}
+                {source === 'manual' && !task.calendar_event_id && !task.calendar_task_id && onAddToCalendar && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2"
+                    onClick={e => { e.stopPropagation(); onAddToCalendar(); }}
+                  >
+                    <Calendar className="w-4 h-4 mr-1" />
+                    Add to Calendar
+                  </Button>
+                )}
               </div>
               {/* Only show actions for manual tasks */}
               {source === 'manual' && !isMinimal && (

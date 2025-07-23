@@ -11,6 +11,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Calendar, Clock, ExternalLink, RefreshCw, AlertCircle, CheckCircle, Users, Target, Gift, MapPin, Video, Phone, Coffee, Briefcase, Heart, Star, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
+import { supabase } from '@/lib/supabase';
 
 interface CalendarIntegrationProps {
   userWorkHours?: WorkHours;
@@ -319,18 +320,15 @@ export function CalendarIntegration({ userWorkHours, onFreeTimeSlotsUpdate, onCa
           <Calendar className="h-5 w-5" />
           Calendar Integration
           {integration && (
-            <Badge variant="secondary" className="ml-auto bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+            <Badge variant="secondary" className="ml-2 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
               <CheckCircle className="h-3 w-3 mr-1" />
               Connected
             </Badge>
           )}
         </CardTitle>
-        <CardDescription>
-          {integration 
-            ? "Your Google Calendar is connected and syncing free time slots."
-            : "Connect your Google Calendar to automatically detect free time for task scheduling."
-          }
-        </CardDescription>
+        <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm">
+          Connect your calendar to sync events and tasks automatically.
+        </p>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (
@@ -389,6 +387,49 @@ export function CalendarIntegration({ userWorkHours, onFreeTimeSlotsUpdate, onCa
                 Refresh
               </Button>
             </div>
+            {/* Disconnect Button */}
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                setLoading(true);
+                setError(null);
+                try {
+                  const session = await supabase.auth.getSession();
+                  const res = await fetch('/api/auth/calendar/disconnect', {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${session.data.session?.access_token}`,
+                    },
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    toast.success('Google Calendar disconnected.');
+                    setIntegration(null);
+                  } else {
+                    throw new Error(data.error || 'Failed to disconnect');
+                  }
+                } catch (err: any) {
+                  setError(err.message);
+                  toast.error('Failed to disconnect Google Calendar');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading}
+              className="min-w-[160px] bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white mt-2"
+            >
+              {loading ? (
+                <>
+                  <LoadingSpinner className="h-4 w-4 mr-2" />
+                  Disconnecting...
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Disconnect Google Calendar
+                </>
+              )}
+            </Button>
 
             {/* Tab Navigation */}
             <div className="flex space-x-1 border-b border-gray-200 dark:border-gray-700">
